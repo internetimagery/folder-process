@@ -44,11 +44,16 @@ def unique_name(name):
 
 class Media(object):
 
+    TAGS = re.compile(r"\[.+?\]") # Extract information from tags square brackets (Tagspaces)
+
     def __init__(s, dir_entry):
         """ A media file """
-        s.path = dir_entry.path
+        s.path = s.working = dir_entry.path
         s.name, s.ext = os.path.splitext(dir_entry.name)
-        s.compress("")
+        try:
+            s.tags = s.TAGS.search(s.name).group(0)
+        except AttributeError:
+            s.tags = ""
 
     def compress(s, dest):
         """ Compress media to destination """
@@ -65,6 +70,7 @@ class Media(object):
             s._compress_video(dest)
         else:
             s._compress_generic(dest)
+        s.working = dest
 
     def _compress_generic(s, dest):
         """ just link a file instead of doing anything else to it """
@@ -108,36 +114,40 @@ def DO_IT(root):
     """ Lets get to it! """
     if depend_check():
 
-        # Start with a temporary working directory!
-        with tempfile.TemporaryDirectory(dir=root) as working_dir:
+        num_start = 0 # Highest numbered file in folder, add more files from here
+        root_name = os.path.basename(root) # Actual folder name of root
+        naming_convention = re.compile(r"%s\_(\d+)" % re.escape(root_name))
+        to_process = [] # Grab all files that need processing
 
-            num_start = 0 # Highest numbered file in folder, add more files from here
-            root_name = os.path.basename(root) # Actual folder name of root
-            naming_convention = re.compile(r"%s\_(\d+)" % re.escape(root_name))
-            to_process = [] # Grab all files that need processing
+        # Look through file and grab files that don't match the naming convention
+        for media in (Media(f) for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
+            check = naming_convention.match(media.name) # Check the file matches naming convention
 
-            # Look through file and grab files that don't match the naming convention
-            for media in (Media(f) for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
-                check = naming_convention.match(media.name) # Check the file matches naming convention
+            # If we have a file that matches the naming convention
+            # then take the digit of the file as out new starting point.
+            # We assume that a file matching naming conventions has already
+            # been processed. So we leave it at that.
+            if check:
+                num_start = max(num_start, int(check.group(1)))
 
-                # If we have a file that matches the naming convention
-                # then take the digit of the file as out new starting point.
-                # We assume that a file matching naming conventions has already
-                # been processed. So we leave it at that.
-                if check:
-                    num_start = max(num_start, int(check.group(1)))
+            # We have a file that does not match the naming convention
+            # so we assume it needs processing. Add it to our process list.
+            else:
+                to_process.append(media)
 
-                # We have a file that does not match the naming convention
-                # so we assume it needs processing. Add it to our process list.
-                else:
-                    to_process.append(media)
+        # Assuming we have anything left to process
+        if to_process:
+            to_process.sort(key=lambda x: x.name) # Put our stuff in order
 
-            if to_process: # Assuming we have anything left to process
-                to_process.sort(key=lambda x: x.name) # Put our stuff in order
+            # Make a temporary working directory!
+            with tempfile.TemporaryDirectory(dir=root) as working_dir:
+
+                for media in to_process:
+                    print(media.tags)
 
 
 
-                print(to_process)
+
 
 
 
