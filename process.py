@@ -14,7 +14,7 @@ import re
 
 TEMPROOT = os.path.realpath(os.path.dirname(__file__))
 
-NAMING_FORMAT = "{root}_{num}"
+NAMING_CONVENTION = "{root}_{num}{tags}{ext}" # How we're going to name our files
 IMAGES = (".jpg", ".jpeg", ".png")
 VIDEO = (".mp4", ".mov", ".avi")
 ORIGINALS = "Originals - Check before deleting" # Where to put original files
@@ -125,8 +125,17 @@ def get_candidates(root):
 
     num_start = 0 # Highest numbered file in folder, add more files from here
     root_name = os.path.basename(root) # Actual folder name of root
-    naming_convention = re.compile(r"%s\_(\d+)" % re.escape(root_name))
     tags_convention = re.compile(r"\[.+?\]") # Extract information from tags square brackets (Tagspaces)
+    naming_convention = re.compile(
+        re.escape(
+            NAMING_CONVENTION.format(
+                root=root_name,
+                num="PLACEHOLDER",
+                tags="",
+                ext=""
+            )
+        ).replace("PLACEHOLDER", r"(\d+)")
+    )
     candidates = []
 
     # Look through file and grab files that don't match the naming convention
@@ -156,17 +165,20 @@ def get_candidates(root):
     # Assemble a new name for each file
     for media in candidates:
 
+        new_name = {}
+        new_name["root"] = root_name
+
         # Incriment our file count
         num_start += 1
-        num_str = str(num_start).zfill(num_zeroes)
+        new_name["num"] = str(num_start).zfill(num_zeroes)
 
         # Pull out any tags
         tag_check = tags_convention.search(media[0])
-        tags = tag_check.group(0) if tag_check else ""
+        new_name["tags"] = tag_check.group(0) if tag_check else ""
 
         # Create a new file name
-        old_name, ext = os.path.splitext(media[0])
-        new_name = root_name + "_" + num_str + tags + ext
+        _, new_name["ext"] = os.path.splitext(media[0])
+        new_name = NAMING_CONVENTION.format(**new_name)
 
         # Add the new name to the list
         media.append(new_name)
