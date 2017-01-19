@@ -14,6 +14,7 @@ import re
 
 TEMPROOT = os.path.realpath(os.path.dirname(__file__))
 
+NAMING_FORMAT = "{root}_{num}"
 IMAGES = (".jpg", ".jpeg", ".png")
 VIDEO = (".mp4", ".mov", ".avi")
 ORIGINALS = "Originals - Check before deleting" # Where to put original files
@@ -116,18 +117,81 @@ class Media(object):
         with subprocess.Popen(command, stdout=subprocess.DEVNULL) as com:
             pass # Block process
 
+def get_candidates(root):
+    """
+    Given a directory. Pull out file names that do not match our naming convention.
+    Return a multi array. [OLD_NAME, NEW_NAME]
+    """
+
+    num_start = 0 # Highest numbered file in folder, add more files from here
+    root_name = os.path.basename(root) # Actual folder name of root
+    naming_convention = re.compile(r"%s\_(\d+)" % re.escape(root_name))
+    tags_convention = re.compile(r"\[.+?\]") # Extract information from tags square brackets (Tagspaces)
+    candidates = []
+
+    # Look through file and grab files that don't match the naming convention
+    for media in (f for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
+        check = naming_convention.match(media.name) # Check the file matches naming convention
+
+        # If we have a file that matches the naming convention
+        # then take the digit of the file as out new starting point.
+        # We assume that a file matching naming conventions has already
+        # been processed. So we leave it at that.
+        if check:
+            num_start = max(num_start, int(check.group(1)))
+
+        # We have a file that does not match the naming convention
+        # so we assume it needs processing. Add it to our process list.
+        else:
+            candidates.append([media.name])
+
+    # Figure out the number of zeros (padding) to use for Numbering
+    num_zeroes = len(str(num_start + len(candidates)))
+    if num_zeroes < 3:
+        num_zeroes = 3
+
+    # Sort the list of files so our output remains in the same order.
+    candidates.sort(key=lambda x: x[0])
+
+    # Assemble a new name for each file
+    for media in candidates:
+
+        # Incriment our file count
+        num_start += 1
+        num_str = str(num_start).zfill(num_zeroes)
+
+        # Pull out any tags
+        tag_check = tags_convention.search(media[0])
+        tags = tag_check.group(0) if tag_check else ""
+
+        # Create a new file name
+        old_name, ext = os.path.splitext(media[0])
+        new_name = root_name + "_" + num_str + tags + ext
+
+        # Add the new name to the list
+        media.append(new_name)
+
+    return candidates
+
 
 def DO_IT(root):
     """ Lets get to it! """
     if depend_check():
 
+        print(get_candidates(root))
+
+        return
+
         num_start = 0 # Highest numbered file in folder, add more files from here
         root_name = os.path.basename(root) # Actual folder name of root
         naming_convention = re.compile(r"%s\_(\d+)" % re.escape(root_name))
-        to_process = [] # Grab all files that need processing
+
+        # Keep track of file locations!
+        # [ORIGIN, NEW_FILE]
+        to_process = []
 
         # Look through file and grab files that don't match the naming convention
-        for media in (Media(f) for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
+        for media in (f for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
             check = naming_convention.match(media.name) # Check the file matches naming convention
 
             # If we have a file that matches the naming convention
@@ -140,49 +204,59 @@ def DO_IT(root):
             # We have a file that does not match the naming convention
             # so we assume it needs processing. Add it to our process list.
             else:
-                to_process.append(media)
+                to_process.append([media.name])
 
-        # Assuming we have anything left to process
-        if to_process:
-            to_process.sort(key=lambda x: x.name) # Put our stuff in order
+        # Figure out the number of zeros (padding) to use for Numbering
+        num_zeroes = len(str(num_start + len(to_process)))
+        if num_zeroes < 3:
+            num_zeroes = 3
 
-            # Figure out the number of zeros (padding) to use for Numbering
-            num_zeroes = len(str(num_start + len(to_process)))
-            if num_zeroes < 3:
-                num_zeroes = 3
+        # Put our stuff in order
+        to_process.sort(key=lambda x: x[0])
 
-            # Make a temporary working directory!
-            with tempfile.TemporaryDirectory(dir=root) as working_dir:
 
-                # Make a directory to place original files
-                original_dir = os.path.join(root, ORIGINALS)
-                if not os.path.isdir(original_dir):
-                    os.mkdir(original_dir)
-
-                # COMPRESS MEDIA (and rename stuff) OMG!
-                for media in to_process:
-
-                    # Do the actual compression
-                    print("Compressing: %s" % media.name)
-                    media.compress(working_dir)
-
-                    # Assemble a new name and path
-                    num_start += 1 # Next file numbered
-                    num_str = str(num_start).zfill(num_zeroes) # Zeros filler
-                    new_name = root_name + "_" + num_str + media.tags + media.ext
-                    new_path = os.path.join(root, new_name)
-                    new_path = unique_name(new_path) # Ensure no collisions
-
-                    # Move original file to originals folder, and move compressed file in its place
-                    print("Renaming: %s" % new_name)
-                    origin_path = os.path.join(original_dir, os.path.basename(media.origin))
-                    origin_path = unique_name(origin_path)
-
-                    # Swap files around
-                    shutil.move(media.origin, origin_path)
-                    shutil.move(media.path, new_path)
-
-                    # And we're done!
+        #
+        # # Assuming we have anything left to process
+        # if to_process:
+        #     to_process.sort(key=lambda x: x.name) # Put our stuff in order
+        #
+        #     # Figure out the number of zeros (padding) to use for Numbering
+        #     num_zeroes = len(str(num_start + len(to_process)))
+        #     if num_zeroes < 3:
+        #         num_zeroes = 3
+        #
+        #     # Make a temporary working directory!
+        #     with tempfile.TemporaryDirectory(dir=root) as working_dir:
+        #
+        #         # Make a directory to place original files
+        #         original_dir = os.path.join(root, ORIGINALS)
+        #         if not os.path.isdir(original_dir):
+        #             os.mkdir(original_dir)
+        #
+        #         # COMPRESS MEDIA (and rename stuff) OMG!
+        #         for media in to_process:
+        #
+        #             # Do the actual compression
+        #             print("Compressing: %s" % media.name)
+        #             media.compress(working_dir)
+        #
+        #             # Assemble a new name and path
+        #             num_start += 1 # Next file numbered
+        #             num_str = str(num_start).zfill(num_zeroes) # Zeros filler
+        #             new_name = root_name + "_" + num_str + media.tags + media.ext
+        #             new_path = os.path.join(root, new_name)
+        #             new_path = unique_name(new_path) # Ensure no collisions
+        #
+        #             # Move original file to originals folder, and move compressed file in its place
+        #             print("Renaming: %s" % new_name)
+        #             origin_path = os.path.join(original_dir, os.path.basename(media.origin))
+        #             origin_path = unique_name(origin_path)
+        #
+        #             # Swap files around
+        #             shutil.move(media.origin, origin_path)
+        #             shutil.move(media.path, new_path)
+        #
+        #             # And we're done!
 
 
 class Main(object):
@@ -218,6 +292,6 @@ class Main(object):
 
 
 if __name__ == '__main__':
-    Main()
-    # TEMPROOT = os.path.join(TEMPROOT, "temp")
-    # DO_IT(TEMPROOT)
+    # Main()
+    TEMPROOT = os.path.join(TEMPROOT, "temp")
+    DO_IT(TEMPROOT)
