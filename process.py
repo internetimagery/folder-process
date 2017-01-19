@@ -48,33 +48,43 @@ class Media(object):
 
     def __init__(s, dir_entry):
         """ A media file """
-        s.path = s.working = dir_entry.path
+        s.path = s.origin = dir_entry.path
         s.name, s.ext = os.path.splitext(dir_entry.name)
         try:
             s.tags = s.TAGS.search(s.name).group(0)
         except AttributeError:
             s.tags = ""
 
-    def compress(s, dest):
-        """ Compress media to destination """
-
-        # First check that the destination doesn't exist
+    def _file_check(s, dest):
+        """ utility """
         if os.path.isfile(dest):
             raise IOError("File already exists: %s" % dest)
 
-        # Determine which type of media this is and compress it
+    def compress(s, dest_dir):
+        """ Compress media to destination folder """
+
+        # Determine which type of media this is, add extension and compress it
+        dest = os.path.join(dest_dir, s.name)
         lower_ext = s.ext.lower()
         if lower_ext in IMAGES:
+            dest += lower_ext
+            s._file_check(dest)
             s._compress_image(dest)
         elif lower_ext in VIDEO:
+            dest += ".mp4"
+            lower_ext = ".mp4"
+            s._file_check(dest)
             s._compress_video(dest)
         else:
+            dest += s.ext
+            s._file_check(dest)
             s._compress_generic(dest)
-        s.working = dest
+        s.path = dest
+        s.ext = lower_ext
 
     def _compress_generic(s, dest):
         """ just link a file instead of doing anything else to it """
-        os.link(s.path, dest)
+        os.link(s.origin, dest)
 
     def _compress_image(s, dest):
         """ Compress image losslessly using imagemin """
@@ -83,15 +93,16 @@ class Media(object):
         command = [
             "imagemin",         # Command
             "--plugin=mozjpeg", # Plugin! Better compression
-            s.path              # Source!
+            s.origin              # Source!
             ]
         with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE) as com:
             with open(dest, "wb") as f_dest:
-                while True:
-                    buff = com.stdout.read(4096)
-                    if not buff:
-                        break
-                    f_dest.write(buff)
+                f_dest.write(com.stdout.read())
+                # while True:
+                #     buff = com.stdout.read(4096)
+                #     if not buff:
+                #         break
+                #     f_dest.write(buff)
 
     def _compress_video(s, dest):
         """ Compress video, visually lossless using ffmpeg """
@@ -101,7 +112,7 @@ class Media(object):
         command = [
             "ffmpeg",           # Command
             "-v", "quiet",      # Don't need to see stuff
-            "-i", s.path,       # Source
+            "-i", s.origin,       # Source
             "-crf", "18",       # Quality (lower number = higher quality)
             "-c:v", "libx264",  # codec
             dest                # Output
@@ -139,11 +150,33 @@ def DO_IT(root):
         if to_process:
             to_process.sort(key=lambda x: x.name) # Put our stuff in order
 
+            # Figure out the number of zeros (padding) to use for Numbering
+            num_zeroes = len(str(num_start + len(to_process)))
+            if num_zeroes < 3:
+                num_zeroes = 3
+
             # Make a temporary working directory!
             with tempfile.TemporaryDirectory(dir=root) as working_dir:
 
+                # Make a directory to place original files
+                original_dir = os.path.join(root, ORIGINALS)
+                if not os.path.isdir(original_dir):
+                    os.mkdir(original_dir)
+
+                # COMPRESS MEDIA (and rename stuff) OMG!
                 for media in to_process:
-                    print(media.tags)
+
+                    # Do the actual compression
+                    print("Compressing: %s." % media.name)
+                    media.compress(working_dir)
+
+                    # Assemble a new name
+                    num_start += 1 # Next file numbered
+                    num_str = str(num_start).zfill(num_zeroes) # Zeros filler
+                    new_name = root_name + "_" + num_str + media.tags + media.ext
+                    new_path = os.path.join(root, new_name)
+
+                    print(new_path)
 
 
 
@@ -171,4 +204,5 @@ def DO_IT(root):
 
 
 if __name__ == '__main__':
+    TEMPROOT = os.path.join(TEMPROOT, "temp")
     DO_IT(TEMPROOT)
