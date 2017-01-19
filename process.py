@@ -1,4 +1,5 @@
 # Shrink images and videos in a folder. Rename files to match folder name.
+# File naming convention: FOLDERNAME_NUMBER
 
 import subprocess
 import tkinter
@@ -74,9 +75,13 @@ def DO_IT(root):
         # Start with a temporary working directory!
         with tempfile.TemporaryDirectory(dir=root) as working_dir:
 
-            # Snag files and lets look through them
+            numbering_end = 0 # Highest numbered file in folder, add more files from here
+            naming_convention = re.compile(r"%s\_(\d+)" % re.escape(root))
+
+            # Look through file and grab files that don't match the naming convention
             for media in (f for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
-                print(media.name)
+
+                print(media.name, naming_convention.match(media.name))
 
             # files = sorted((f for f in os.scandir(root) if f.is_file()), key=lambda x: x.name)
 
