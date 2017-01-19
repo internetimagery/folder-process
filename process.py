@@ -9,9 +9,13 @@ import tempfile
 import shutil
 import os.path
 import os
+import re
 
 
 TEMPROOT = os.path.realpath(os.path.dirname(__file__))
+
+IMAGES = (".jpg", ".jpeg", ".png")
+VIDEO = (".mp4", ".mov", ".avi")
 
 # Figure out what we can use
 FFMPEG = True if shutil.which("ffmpeg") else False
@@ -30,11 +34,15 @@ def depend_check():
         return tkinter.messagebox.askyesno(message=message)
     return True
 
-def compress_jpeg(src, dest):
+def compress_image(src, dest):
     """ Compress image losslessly using imagemin """
     if os.path.isfile(dest):
         raise IOError("File already exists: %s" % dest)
-    command = ["imagemin", "--plugin=mozjpeg", src]
+    command = [
+        "imagemin",         # Command
+        "--plugin=mozjpeg", # Plugin! Better compression
+        src                 # Source!
+        ]
     with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE) as com:
         with open(dest, "wb") as f_dest:
             while True:
@@ -43,20 +51,50 @@ def compress_jpeg(src, dest):
                     break
                 f_dest.write(buff)
 
+def compress_video(src, dest):
+    """ Compress video, visually lossless using ffmpeg """
+    if os.path.isfile(dest):
+        raise IOError("File already exists: %s" % dest)
+    # rotation = "rotate='90*PI/180:ow=ih:oh=iw'" # Rotation command
+    command = [
+        "ffmpeg",           # Command
+        "-v", "quiet",      # Don't need to see stuff
+        "-i", src,          # Source
+        "-crf", "18",       # Quality
+        "-c:v", "libx264",  # codec
+        dest                # Output
+        ]
+    with subprocess.Popen(command) as com:
+        pass # Block process
 
-def process(root):
+def DO_IT(root):
     """ Lets get to it! """
     if depend_check():
 
         # Start with a temporary working directory!
         with tempfile.TemporaryDirectory(dir=root) as working_dir:
 
-            testfile = os.path.join(TEMPROOT, "Ethan and Archer_33.jpg")
-            testdest = os.path.join(TEMPROOT, "something.jpg")
-            # testdest = os.path.join(working_dir, "something.jpg")
+            # Snag files and lets look through them
+            for media in (f for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
+                print(media.name)
 
-            print(compress_jpeg(testfile, testdest))
+            # files = sorted((f for f in os.scandir(root) if f.is_file()), key=lambda x: x.name)
+
+
+
+
+            # testfile = os.path.join(TEMPROOT, "MOV_0025.mp4")
+            # testdest = os.path.join(TEMPROOT, "madeit.mp4")
+            # testdest = os.path.join(working_dir, "something.jpg")
+            # #
+            # print(compress_video(testfile, testdest))
+
+            # testfile = os.path.join(TEMPROOT, "Ethan and Archer_33.jpg")
+            # # testdest = os.path.join(TEMPROOT, "something.jpg")
+            # testdest = os.path.join(working_dir, "something.jpg")
+            # #
+            # print(compress_image(testfile, testdest))
 
 
 if __name__ == '__main__':
-    process(TEMPROOT)
+    DO_IT(TEMPROOT)
