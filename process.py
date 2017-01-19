@@ -1,6 +1,8 @@
 # Shrink images and videos in a folder. Rename files to match folder name.
 # File naming convention: FOLDERNAME_NUMBER
 
+# TODO: Possiblity of using ffmpeg to do jpeg compressions too? It works in basic tests
+
 import subprocess
 import tkinter
 import tkinter.messagebox
@@ -17,7 +19,7 @@ TEMPROOT = os.path.realpath(os.path.dirname(__file__))
 NAMING_CONVENTION = "{root}_{num}{tags}{ext}" # How we're going to name our files
 IMAGES = (".jpg", ".jpeg", ".png")
 VIDEO = (".mp4", ".mov", ".avi")
-ORIGINALS = "Originals - Check before deleting" # Where to put original files
+BACKUP_DIR = "Originals - Check before deleting" # Where to put original files
 
 # Figure out what we can use
 FFMPEG = True if shutil.which("ffmpeg") else False
@@ -152,7 +154,7 @@ def get_candidates(root):
         # We have a file that does not match the naming convention
         # so we assume it needs processing. Add it to our process list.
         else:
-            candidates.append([media.name])
+            candidates.append({"o_name" : media.name})
 
     # Figure out the number of zeros (padding) to use for Numbering
     num_zeroes = len(str(num_start + len(candidates)))
@@ -160,7 +162,7 @@ def get_candidates(root):
         num_zeroes = 3
 
     # Sort the list of files so our output remains in the same order.
-    candidates.sort(key=lambda x: x[0])
+    candidates.sort(key=lambda x: x["o_name"])
 
     # Assemble a new name for each file
     for media in candidates:
@@ -173,15 +175,12 @@ def get_candidates(root):
         new_name["num"] = str(num_start).zfill(num_zeroes)
 
         # Pull out any tags
-        tag_check = tags_convention.search(media[0])
+        tag_check = tags_convention.search(media["o_name"])
         new_name["tags"] = tag_check.group(0) if tag_check else ""
 
-        # Create a new file name
-        _, new_name["ext"] = os.path.splitext(media[0])
-        new_name = NAMING_CONVENTION.format(**new_name)
-
-        # Add the new name to the list
-        media.append(new_name)
+        # Create a new file name and append it to the original name
+        _, new_name["ext"] = os.path.splitext(media["o_name"])
+        media["n_name"] = NAMING_CONVENTION.format(**new_name)
 
     return candidates
 
@@ -190,58 +189,36 @@ def DO_IT(root):
     """ Lets get to it! """
     if depend_check():
 
-        print(get_candidates(root))
+        # Backup directory path
+        b_dir = os.path.join(root, BACKUP_DIR)
+
+        # Create a working directory
+        # with tempfile.TemporaryDirectory(dir=root) as w_dir:
+
+        # Get all our file paths
+        # Check that there are no files already in place
+        file_info = get_candidates(root)
+        for media in file_info:
+
+            # Get our paths. Origin, New, Backup and Working
+            media["o_path"] = os.path.join(root, media["o_name"])
+            media["n_path"] = os.path.join(root, media["n_name"])
+            media["b_path"] = os.path.join(b_dir, media["o_name"])
+
+            if os.path.isfile(media["b_path"]):
+                raise FileExistsError("File exists. Please fix and try again. %s" % media["b_path"])
+            if not os.path.isfile(media["o_path"]):
+                raise FileNotFoundError("File missing. Please fix and try again. %s" % media["o_path"])
 
         return
 
-        num_start = 0 # Highest numbered file in folder, add more files from here
-        root_name = os.path.basename(root) # Actual folder name of root
-        naming_convention = re.compile(r"%s\_(\d+)" % re.escape(root_name))
-
-        # Keep track of file locations!
-        # [ORIGIN, NEW_FILE]
-        to_process = []
-
-        # Look through file and grab files that don't match the naming convention
-        for media in (f for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
-            check = naming_convention.match(media.name) # Check the file matches naming convention
-
-            # If we have a file that matches the naming convention
-            # then take the digit of the file as out new starting point.
-            # We assume that a file matching naming conventions has already
-            # been processed. So we leave it at that.
-            if check:
-                num_start = max(num_start, int(check.group(1)))
-
-            # We have a file that does not match the naming convention
-            # so we assume it needs processing. Add it to our process list.
-            else:
-                to_process.append([media.name])
-
-        # Figure out the number of zeros (padding) to use for Numbering
-        num_zeroes = len(str(num_start + len(to_process)))
-        if num_zeroes < 3:
-            num_zeroes = 3
-
-        # Put our stuff in order
-        to_process.sort(key=lambda x: x[0])
 
 
-        #
-        # # Assuming we have anything left to process
-        # if to_process:
-        #     to_process.sort(key=lambda x: x.name) # Put our stuff in order
-        #
-        #     # Figure out the number of zeros (padding) to use for Numbering
-        #     num_zeroes = len(str(num_start + len(to_process)))
-        #     if num_zeroes < 3:
-        #         num_zeroes = 3
-        #
         #     # Make a temporary working directory!
         #     with tempfile.TemporaryDirectory(dir=root) as working_dir:
         #
         #         # Make a directory to place original files
-        #         original_dir = os.path.join(root, ORIGINALS)
+        #         original_dir = os.path.join(root, BACKUP_DIR)
         #         if not os.path.isdir(original_dir):
         #             os.mkdir(original_dir)
         #
