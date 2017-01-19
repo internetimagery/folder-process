@@ -5,7 +5,6 @@ import subprocess
 import tkinter
 import tkinter.messagebox
 # from tkinter import filedialog
-# from tkinter import messagebox
 import tempfile
 import shutil
 import os.path
@@ -17,6 +16,7 @@ TEMPROOT = os.path.realpath(os.path.dirname(__file__))
 
 IMAGES = (".jpg", ".jpeg", ".png")
 VIDEO = (".mp4", ".mov", ".avi")
+ORIGINALS = "Originals - Check before deleting" # Where to put original files
 
 # Figure out what we can use
 FFMPEG = True if shutil.which("ffmpeg") else False
@@ -29,44 +29,80 @@ def depend_check():
         if not FFMPEG:
             message += "Ffmpeg missing. To compress videos install from https://ffmpeg.org/\n"
         if not IMAGEMIN:
-            message += "Imagemin missing. To compress images install nodejs and run the commands:\n>>>npm install imagemin-cli -g\n>>>npm install imagemin-mozjpeg -g\n"
+            message += "Imagemin missing. To compress images install nodejs and run the commands:\n>>>npm install imagemin-cli -g && npm install imagemin-mozjpeg -g\n"
 
         message += "\nContinue Anyway?"
         return tkinter.messagebox.askyesno(message=message)
     return True
 
-def compress_image(src, dest):
-    """ Compress image losslessly using imagemin """
-    if os.path.isfile(dest):
-        raise IOError("File already exists: %s" % dest)
-    command = [
-        "imagemin",         # Command
-        "--plugin=mozjpeg", # Plugin! Better compression
-        src                 # Source!
-        ]
-    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE) as com:
-        with open(dest, "wb") as f_dest:
-            while True:
-                buff = com.stdout.read(4096)
-                if not buff:
-                    break
-                f_dest.write(buff)
+def unique_name(name):
+    """ If a file name exists, come up with a new name """
+    while os.path.isfile(name):
+        path, ext = os.path.splitext(name)
+        name = path + "_copy" + ext
+    return name
 
-def compress_video(src, dest):
-    """ Compress video, visually lossless using ffmpeg """
-    if os.path.isfile(dest):
-        raise IOError("File already exists: %s" % dest)
-    # rotation = "rotate='90*PI/180:ow=ih:oh=iw'" # Rotation command
-    command = [
-        "ffmpeg",           # Command
-        "-v", "quiet",      # Don't need to see stuff
-        "-i", src,          # Source
-        "-crf", "18",       # Quality
-        "-c:v", "libx264",  # codec
-        dest                # Output
-        ]
-    with subprocess.Popen(command) as com:
-        pass # Block process
+class Media(object):
+
+    def __init__(s, dir_entry):
+        """ A media file """
+        s.path = dir_entry.path
+        s.name, s.ext = os.path.splitext(dir_entry.name)
+        s.compress("")
+
+    def compress(s, dest):
+        """ Compress media to destination """
+
+        # First check that the destination doesn't exist
+        if os.path.isfile(dest):
+            raise IOError("File already exists: %s" % dest)
+
+        # Determine which type of media this is and compress it
+        lower_ext = s.ext.lower()
+        if lower_ext in IMAGES:
+            s._compress_image(dest)
+        elif lower_ext in VIDEO:
+            s._compress_video(dest)
+        else:
+            s._compress_generic(dest)
+
+    def _compress_generic(s, dest):
+        """ just link a file instead of doing anything else to it """
+        os.link(s.path, dest)
+
+    def _compress_image(s, dest):
+        """ Compress image losslessly using imagemin """
+        if os.path.isfile(dest):
+            raise IOError("File already exists: %s" % dest)
+        command = [
+            "imagemin",         # Command
+            "--plugin=mozjpeg", # Plugin! Better compression
+            s.path              # Source!
+            ]
+        with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE) as com:
+            with open(dest, "wb") as f_dest:
+                while True:
+                    buff = com.stdout.read(4096)
+                    if not buff:
+                        break
+                    f_dest.write(buff)
+
+    def _compress_video(s, dest):
+        """ Compress video, visually lossless using ffmpeg """
+        if os.path.isfile(dest):
+            raise IOError("File already exists: %s" % dest)
+        # rotation = "rotate='90*PI/180:ow=ih:oh=iw'" # Rotation command
+        command = [
+            "ffmpeg",           # Command
+            "-v", "quiet",      # Don't need to see stuff
+            "-i", s.path,       # Source
+            "-crf", "18",       # Quality (lower number = higher quality)
+            "-c:v", "libx264",  # codec
+            dest                # Output
+            ]
+        with subprocess.Popen(command) as com:
+            pass # Block process
+
 
 def DO_IT(root):
     """ Lets get to it! """
@@ -75,16 +111,33 @@ def DO_IT(root):
         # Start with a temporary working directory!
         with tempfile.TemporaryDirectory(dir=root) as working_dir:
 
-            numbering_end = 0 # Highest numbered file in folder, add more files from here
-            naming_convention = re.compile(r"%s\_(\d+)" % re.escape(root))
+            num_start = 0 # Highest numbered file in folder, add more files from here
+            root_name = os.path.basename(root) # Actual folder name of root
+            naming_convention = re.compile(r"%s\_(\d+)" % re.escape(root_name))
+            to_process = [] # Grab all files that need processing
 
             # Look through file and grab files that don't match the naming convention
-            for media in (f for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
+            for media in (Media(f) for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
+                check = naming_convention.match(media.name) # Check the file matches naming convention
 
-                print(media.name, naming_convention.match(media.name))
+                # If we have a file that matches the naming convention
+                # then take the digit of the file as out new starting point.
+                # We assume that a file matching naming conventions has already
+                # been processed. So we leave it at that.
+                if check:
+                    num_start = max(num_start, int(check.group(1)))
 
-            # files = sorted((f for f in os.scandir(root) if f.is_file()), key=lambda x: x.name)
+                # We have a file that does not match the naming convention
+                # so we assume it needs processing. Add it to our process list.
+                else:
+                    to_process.append(media)
 
+            if to_process: # Assuming we have anything left to process
+                to_process.sort(key=lambda x: x.name) # Put our stuff in order
+
+
+
+                print(to_process)
 
 
 
@@ -99,6 +152,12 @@ def DO_IT(root):
             # testdest = os.path.join(working_dir, "something.jpg")
             # #
             # print(compress_image(testfile, testdest))
+
+
+
+                # original_dir = os.path.join(root, ORIGINALS)
+                # if not os.path.isdir(original_dir):
+                #     os.mkdir(original_dir)
 
 
 if __name__ == '__main__':
