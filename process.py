@@ -156,7 +156,7 @@ def get_candidates(root):
         else:
             candidates.append({
                 "o_name" : media.name,
-                "o_path" : os.path.join(root, media.name)
+                "o_path" : media.path
                 })
 
     # Figure out the number of zeros (padding) to use for Numbering
