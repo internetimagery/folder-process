@@ -8,5 +8,6 @@ Run on a folder to do the following:
 
 Has two dependencies for compression.
 * FFMPEG. Download from https://ffmpeg.org/
-* IMAGEMIN. Download nodejs from http://nodejs.com and run the following code:
+* IMAGEMIN. Download nodejs from http://nodejs.org and run the following code:
+
     npm install imagemin-cli -g && npm install imagemin-mozjpeg -g
