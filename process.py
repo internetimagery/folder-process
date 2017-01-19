@@ -154,7 +154,10 @@ def get_candidates(root):
         # We have a file that does not match the naming convention
         # so we assume it needs processing. Add it to our process list.
         else:
-            candidates.append({"o_name" : media.name})
+            candidates.append({
+                "o_name" : media.name,
+                "o_path" : os.path.join(root, media.name)
+                })
 
     # Figure out the number of zeros (padding) to use for Numbering
     num_zeroes = len(str(num_start + len(candidates)))
@@ -181,6 +184,7 @@ def get_candidates(root):
         # Create a new file name and append it to the original name
         _, new_name["ext"] = os.path.splitext(media["o_name"])
         media["n_name"] = NAMING_CONVENTION.format(**new_name)
+        media["n_path"] = os.path.join(root, media["n_name"])
 
     return candidates
 
@@ -189,63 +193,44 @@ def DO_IT(root):
     """ Lets get to it! """
     if depend_check():
 
-        # Backup directory path
-        b_dir = os.path.join(root, BACKUP_DIR)
+        # Get possible files to work on
+        candidates = get_candidates(root)
+        if candidates:
 
-        # Create a working directory
-        # with tempfile.TemporaryDirectory(dir=root) as w_dir:
+            # Backup directory path
+            b_dir = os.path.join(root, BACKUP_DIR)
 
-        # Get all our file paths
-        # Check that there are no files already in place
-        file_info = get_candidates(root)
-        for media in file_info:
+            # Check that there are no files already in place
+            for media in candidates:
+                media["b_path"] = os.path.join(b_dir, media["o_name"])
 
-            # Get our paths. Origin, New, Backup and Working
-            media["o_path"] = os.path.join(root, media["o_name"])
-            media["n_path"] = os.path.join(root, media["n_name"])
-            media["b_path"] = os.path.join(b_dir, media["o_name"])
+                if os.path.isfile(media["b_path"]):
+                    raise FileExistsError("File exists. Please fix and try again. %s" % media["b_path"])
+                if not os.path.isfile(media["o_path"]):
+                    raise FileNotFoundError("File missing. Please fix and try again. %s" % media["o_path"])
 
-            if os.path.isfile(media["b_path"]):
-                raise FileExistsError("File exists. Please fix and try again. %s" % media["b_path"])
-            if not os.path.isfile(media["o_path"]):
-                raise FileNotFoundError("File missing. Please fix and try again. %s" % media["o_path"])
+            # Create a working directory
+            with tempfile.TemporaryDirectory(dir=root) as w_dir:
 
-        return
+                # Compress files! Woo!
+                for media in candidates:
+                    media["w_path"] = os.path.join(w_dir, media["o_name"])
 
+                    # PERFORM COMPRESSION #####
+                    os.link(media["o_path"], media["w_path"])
+                    # REPLACE WITH COMPRESSION CODE ####
 
+                # So far so good. Make a backup folder for original files
+                if not os.path.isdir(b_dir):
+                    os.mkdir(b_dir)
 
-        #     # Make a temporary working directory!
-        #     with tempfile.TemporaryDirectory(dir=root) as working_dir:
-        #
-        #         # Make a directory to place original files
-        #         original_dir = os.path.join(root, BACKUP_DIR)
-        #         if not os.path.isdir(original_dir):
-        #             os.mkdir(original_dir)
-        #
-        #         # COMPRESS MEDIA (and rename stuff) OMG!
-        #         for media in to_process:
-        #
-        #             # Do the actual compression
-        #             print("Compressing: %s" % media.name)
-        #             media.compress(working_dir)
-        #
-        #             # Assemble a new name and path
-        #             num_start += 1 # Next file numbered
-        #             num_str = str(num_start).zfill(num_zeroes) # Zeros filler
-        #             new_name = root_name + "_" + num_str + media.tags + media.ext
-        #             new_path = os.path.join(root, new_name)
-        #             new_path = unique_name(new_path) # Ensure no collisions
-        #
-        #             # Move original file to originals folder, and move compressed file in its place
-        #             print("Renaming: %s" % new_name)
-        #             origin_path = os.path.join(original_dir, os.path.basename(media.origin))
-        #             origin_path = unique_name(origin_path)
-        #
-        #             # Swap files around
-        #             shutil.move(media.origin, origin_path)
-        #             shutil.move(media.path, new_path)
-        #
-        #             # And we're done!
+                # Finally move out our original files
+                # and replace with new ones
+                for media in candidates:
+                    shutil.move(media["o_path"], media["b_path"])
+                    shutil.move(media["w_path"], media["n_path"])
+
+                # And we're done!
 
 
 class Main(object):
