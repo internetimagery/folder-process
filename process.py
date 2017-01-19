@@ -4,7 +4,7 @@
 import subprocess
 import tkinter
 import tkinter.messagebox
-# from tkinter import filedialog
+import tkinter.filedialog
 import tempfile
 import shutil
 import os.path
@@ -39,7 +39,7 @@ def unique_name(name):
     """ If a file name exists, come up with a new name """
     while os.path.isfile(name):
         path, ext = os.path.splitext(name)
-        name = path + "_copy" + ext
+        name = path + "_other" + ext
     return name
 
 class Media(object):
@@ -88,14 +88,12 @@ class Media(object):
 
     def _compress_image(s, dest):
         """ Compress image losslessly using imagemin """
-        if os.path.isfile(dest):
-            raise IOError("File already exists: %s" % dest)
         command = [
-            "imagemin",         # Command
+            "imagemin.cmd",     # Command
             "--plugin=mozjpeg", # Plugin! Better compression
-            s.origin              # Source!
+            s.origin            # Source!
             ]
-        with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE) as com:
+        with subprocess.Popen(command, stdout=subprocess.PIPE) as com:
             with open(dest, "wb") as f_dest:
                 f_dest.write(com.stdout.read())
                 # while True:
@@ -106,18 +104,16 @@ class Media(object):
 
     def _compress_video(s, dest):
         """ Compress video, visually lossless using ffmpeg """
-        if os.path.isfile(dest):
-            raise IOError("File already exists: %s" % dest)
         # rotation = "rotate='90*PI/180:ow=ih:oh=iw'" # Rotation command
         command = [
-            "ffmpeg",           # Command
+            "ffmpeg.exe",       # Command
             "-v", "quiet",      # Don't need to see stuff
             "-i", s.origin,       # Source
             "-crf", "18",       # Quality (lower number = higher quality)
             "-c:v", "libx264",  # codec
             dest                # Output
             ]
-        with subprocess.Popen(command) as com:
+        with subprocess.Popen(command, stdout=subprocess.DEVNULL) as com:
             pass # Block process
 
 
@@ -167,42 +163,61 @@ def DO_IT(root):
                 for media in to_process:
 
                     # Do the actual compression
-                    print("Compressing: %s." % media.name)
+                    print("Compressing: %s" % media.name)
                     media.compress(working_dir)
 
-                    # Assemble a new name
+                    # Assemble a new name and path
                     num_start += 1 # Next file numbered
                     num_str = str(num_start).zfill(num_zeroes) # Zeros filler
                     new_name = root_name + "_" + num_str + media.tags + media.ext
                     new_path = os.path.join(root, new_name)
+                    new_path = unique_name(new_path) # Ensure no collisions
 
-                    print(new_path)
+                    # Move original file to originals folder, and move compressed file in its place
+                    print("Renaming: %s" % new_name)
+                    origin_path = os.path.join(original_dir, os.path.basename(media.origin))
+                    origin_path = unique_name(origin_path)
 
+                    # Swap files around
+                    shutil.move(media.origin, origin_path)
+                    shutil.move(media.path, new_path)
 
-
-
-
-
-
-            # testfile = os.path.join(TEMPROOT, "MOV_0025.mp4")
-            # testdest = os.path.join(TEMPROOT, "madeit.mp4")
-            # testdest = os.path.join(working_dir, "something.jpg")
-            # #
-            # print(compress_video(testfile, testdest))
-
-            # testfile = os.path.join(TEMPROOT, "Ethan and Archer_33.jpg")
-            # # testdest = os.path.join(TEMPROOT, "something.jpg")
-            # testdest = os.path.join(working_dir, "something.jpg")
-            # #
-            # print(compress_image(testfile, testdest))
+                    # And we're done!
 
 
+class Main(object):
 
-                # original_dir = os.path.join(root, ORIGINALS)
-                # if not os.path.isdir(original_dir):
-                #     os.mkdir(original_dir)
+    def __init__(s):
+        """ Main window! """
+        # s.last_location = os.getcwd() # Where to start browsing.
+        s.last_location = os.path.realpath(os.path.dirname(__file__))
+
+        window = tkinter.Tk()
+        window.title("Rename and Compress all media files.")
+
+        # Add a descriptive label
+        desc_label = tkinter.Label(window, text="Rename and Compress all media files.")
+
+        # Add a textbox and button
+        browse_button = tkinter.Button(window, text="Browse Folder", command=s.browse_path)
+
+        # Put it all together!
+        desc_label.pack()
+        browse_button.pack(side=tkinter.BOTTOM)
+
+        # Lets go!
+        window.mainloop()
+
+    def browse_path(s):
+        """ Browse to find a path """
+        path = tkinter.filedialog.askdirectory(initialdir=s.last_location)
+        if path:
+            s.last_location = path
+            print(path)
+
 
 
 if __name__ == '__main__':
-    TEMPROOT = os.path.join(TEMPROOT, "temp")
-    DO_IT(TEMPROOT)
+    Main()
+    # TEMPROOT = os.path.join(TEMPROOT, "temp")
+    # DO_IT(TEMPROOT)
