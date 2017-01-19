@@ -66,11 +66,11 @@ class Media(object):
         # Determine which type of media this is, add extension and compress it
         dest = os.path.join(dest_dir, s.name)
         lower_ext = s.ext.lower()
-        if lower_ext in IMAGES:
+        if lower_ext in IMAGES and IMAGEMIN:
             dest += lower_ext
             s._file_check(dest)
             s._compress_image(dest)
-        elif lower_ext in VIDEO:
+        elif lower_ext in VIDEO and FFMPEG:
             dest += ".mp4"
             lower_ext = ".mp4"
             s._file_check(dest)
