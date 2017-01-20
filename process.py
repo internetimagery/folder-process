@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 import shutil
 import os.path
+import uuid
 import os
 import re
 
@@ -29,7 +30,7 @@ def compress_image(src, dest):
     command = [
         IMAGEMIN,           # Command
         "--plugin=mozjpeg", # Plugin! Better compression
-        src                 # Source!
+        src                # Source!
         ]
     with subprocess.Popen(command, stdout=subprocess.PIPE) as com:
         with open(dest, "wb") as f_dest:
@@ -170,17 +171,22 @@ def DO_IT(root):
                 placeholder = open(media["n_path"], "w")
                 try:
 
+                    # Create a temporary file with a different name
+                    # as some programs have a fit with square brackets etc
+                    safe_name = os.path.join(w_dir, str(uuid.uuid4()))
+                    os.link(media["o_path"], safe_name)
+
                     # Work out which compression type to use.
                     # Compress into temporary working directory.
                     # For unknown file type, simply link to working directory.
                     curr_file += 1
                     print("[%s/%s] Compressing: %s => %s" % (curr_file, total_files, media["o_name"], media["n_name"]))
                     if media["type"] == 1 and IMAGEMIN:
-                        compress_image(media["o_path"], media["w_path"])
+                        compress_image(safe_name, media["w_path"])
                     elif media["type"] == 2 and FFMPEG:
-                        compress_video(media["o_path"], media["w_path"])
+                        compress_video(safe_name, media["w_path"])
                     else:
-                        os.link(media["o_path"], media["w_path"])
+                        os.link(safe_name, media["w_path"])
 
                 finally:
                     # Clean up the placeholder
@@ -191,6 +197,8 @@ def DO_IT(root):
                 # Pick the smallest file. Compressing a compressed file can lead to a larger one.
                 size_old = os.stat(media["o_path"]).st_size
                 size_new = os.stat(media["w_path"]).st_size
+
+                print(size_old, size_new)
 
                 if size_new and size_new < size_old:
                     # Move our compressed file to the root
