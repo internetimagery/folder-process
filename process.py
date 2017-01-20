@@ -1,7 +1,7 @@
 # Shrink images and videos in a folder. Rename files to match folder name.
 # File naming convention: FOLDERNAME_NUMBER
 
-# TODO: Possiblity of using ffmpeg to do jpeg compressions too? It works in basic tests
+# TODO: Possiblity of using ffmpeg to do jpeg compressions too? It works in basic tests though not as much as mozjpeg. Is it lossless? One less dependency.
 
 import traceback
 import subprocess
@@ -19,7 +19,7 @@ TEMPROOT = os.path.realpath(os.path.dirname(__file__))
 
 NAMING_CONVENTION = "{root}_{num}{tags}{ext}" # How we're going to name our files
 IMAGES = (".jpg", ".jpeg", ".png")
-VIDEO = (".mp4", ".mov", ".avi")
+VIDEO = (".mp4", ".mov", ".avi", ".wmv", ".rm", ".3gp", ".mkv", ".scm", ".vid", ".mpeg", ".avchd", ".m2ts")
 BACKUP_DIR = "Originals - Check before deleting" # Where to put original files
 
 # Figure out what we can use
@@ -78,23 +78,26 @@ def get_candidates(root):
     candidates = []
 
     # Look through file and grab files that don't match the naming convention
-    for media in (f for f in os.scandir(root) if f.is_file(follow_symlinks=False)):
-        check = naming_convention.match(media.name) # Check the file matches naming convention
+    # for media in (f f/or f in scandir(root) if f.is_file(follow_symlinks=False)):
+    for m_name in os.listdir(root):
+        m_path = os.path.join(root, m_name)
+        if os.path.isfile(m_path):
+            check = naming_convention.match(m_name) # Check the file matches naming convention
 
-        # If we have a file that matches the naming convention
-        # then take the digit of the file as out new starting point.
-        # We assume that a file matching naming conventions has already
-        # been processed. So we leave it at that.
-        if check:
-            num_start = max(num_start, int(check.group(1)))
+            # If we have a file that matches the naming convention
+            # then take the digit of the file as out new starting point.
+            # We assume that a file matching naming conventions has already
+            # been processed. So we leave it at that.
+            if check:
+                num_start = max(num_start, int(check.group(1)))
 
-        # We have a file that does not match the naming convention
-        # so we assume it needs processing. Add it to our process list.
-        else:
-            candidates.append({
-                "o_name" : media.name,
-                "o_path" : media.path
-                })
+            # We have a file that does not match the naming convention
+            # so we assume it needs processing. Add it to our process list.
+            else:
+                candidates.append({
+                    "o_name" : m_name,
+                    "o_path" : m_path
+                    })
 
     # Figure out the number of zeros (padding) to use for Numbering
     num_zeroes = len(str(num_start + len(candidates)))
@@ -152,6 +155,10 @@ def DO_IT(root):
             if not os.path.isfile(media["o_path"]):
                 raise FileNotFoundError("File missing. Please fix and try again. %s" % media["o_path"])
 
+        # Create our backup directory
+        if not os.path.isdir(b_dir):
+            os.mkdir(b_dir)
+
         # Create a working directory
         with tempfile.TemporaryDirectory(dir=root) as w_dir:
 
@@ -179,8 +186,17 @@ def DO_IT(root):
                     placeholder.close()
                     os.unlink(media["n_path"])
 
-                # Move our compressed file to the root
-                shutil.move(media["w_path"], media["n_path"])
+                # TIME TO MAKE A CHOICE!
+                # Pick the smallest file. Compressing a compressed file can lead to a larger one.
+                size_old = os.stat(media["o_path"]).st_size
+                size_new = os.stat(media["w_path"]).st_size
+
+                if size_new < size_old:
+                    # Move our compressed file to the root
+                    shutil.move(media["w_path"], media["n_path"])
+                else:
+                    # Otherwise we didn't really accomplish much. Discard compressed file.
+                    os.link(media["o_path"], media["n_path"])
 
                 # Now that we have the compressed file safely complete.
                 # Back up the original file.
@@ -188,6 +204,7 @@ def DO_IT(root):
                 shutil.move(media["o_path"], media["b_path"])
 
                 # Done! Next file!
+        print("Done! :)")
 
 
 class Main(object):
@@ -225,13 +242,14 @@ class Main(object):
         path = tkinter.filedialog.askdirectory(initialdir=s.last_location)
         if path:
             s.last_location = path
-            try:
-                DO_IT(path)
-            except Exception as err:
-                tkinter.messagebox.showerror(
-                    title="Oh no!",
-                    message="The following error occurred.\n\n%s\n\n%s" % (err, traceback.format_exc())
-                    )
+            if tkinter.messagebox.askokcancel(message="About to process files in:\n\n%s" % path):
+                try:
+                    DO_IT(os.path.realpath(path))
+                except Exception as err:
+                    tkinter.messagebox.showerror(
+                        title="Oh no!",
+                        message="The following error occurred.\n\n%s\n\n%s" % (err, traceback.format_exc())
+                        )
 
     def depend_check(s):
         """ Ask if user wants to continue without depedencies """
@@ -257,5 +275,3 @@ Then run the following commands:
 
 if __name__ == '__main__':
     Main()
-    # TEMPROOT = os.path.join(TEMPROOT, "temp")
-    # DO_IT(TEMPROOT)
