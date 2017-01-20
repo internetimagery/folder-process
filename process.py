@@ -38,92 +38,38 @@ def depend_check():
         return tkinter.messagebox.askyesno(message=message)
     return True
 
-def unique_name(name):
-    """ If a file name exists, come up with a new name """
-    while os.path.isfile(name):
-        path, ext = os.path.splitext(name)
-        name = path + "_other" + ext
-    return name
+def compress_image(src, dest):
+    """ Compress image losslessly using imagemin """
+    command = [
+        "imagemin.cmd",     # Command
+        "--plugin=mozjpeg", # Plugin! Better compression
+        src                 # Source!
+        ]
+    with subprocess.Popen(command, stdout=subprocess.PIPE) as com:
+        with open(dest, "wb") as f_dest:
+            f_dest.write(com.stdout.read())
+            # while True:
+            #     buff = com.stdout.read(4096)
+            #     if not buff:
+            #         break
+            #     f_dest.write(buff)
 
-class Media(object):
-
-    TAGS = re.compile(r"\[.+?\]") # Extract information from tags square brackets (Tagspaces)
-
-    def __init__(s, dir_entry):
-        """ A media file """
-        s.path = s.origin = dir_entry.path
-        s.name, s.ext = os.path.splitext(dir_entry.name)
-        try:
-            s.tags = s.TAGS.search(s.name).group(0)
-        except AttributeError:
-            s.tags = ""
-
-    def _file_check(s, dest):
-        """ utility """
-        if os.path.isfile(dest):
-            raise IOError("File already exists: %s" % dest)
-
-    def compress(s, dest_dir):
-        """ Compress media to destination folder """
-
-        # Determine which type of media this is, add extension and compress it
-        dest = os.path.join(dest_dir, s.name)
-        lower_ext = s.ext.lower()
-        if lower_ext in IMAGES and IMAGEMIN:
-            dest += lower_ext
-            s._file_check(dest)
-            s._compress_image(dest)
-        elif lower_ext in VIDEO and FFMPEG:
-            dest += ".mp4"
-            lower_ext = ".mp4"
-            s._file_check(dest)
-            s._compress_video(dest)
-        else:
-            dest += s.ext
-            s._file_check(dest)
-            s._compress_generic(dest)
-        s.path = dest
-        s.ext = lower_ext
-
-    def _compress_generic(s, dest):
-        """ just link a file instead of doing anything else to it """
-        os.link(s.origin, dest)
-
-    def _compress_image(s, dest):
-        """ Compress image losslessly using imagemin """
-        command = [
-            "imagemin.cmd",     # Command
-            "--plugin=mozjpeg", # Plugin! Better compression
-            s.origin            # Source!
-            ]
-        with subprocess.Popen(command, stdout=subprocess.PIPE) as com:
-            with open(dest, "wb") as f_dest:
-                f_dest.write(com.stdout.read())
-                # while True:
-                #     buff = com.stdout.read(4096)
-                #     if not buff:
-                #         break
-                #     f_dest.write(buff)
-
-    def _compress_video(s, dest):
-        """ Compress video, visually lossless using ffmpeg """
-        # rotation = "rotate='90*PI/180:ow=ih:oh=iw'" # Rotation command
-        command = [
-            "ffmpeg.exe",       # Command
-            "-v", "quiet",      # Don't need to see stuff
-            "-i", s.origin,       # Source
-            "-crf", "18",       # Quality (lower number = higher quality)
-            "-c:v", "libx264",  # codec
-            dest                # Output
-            ]
-        with subprocess.Popen(command, stdout=subprocess.DEVNULL) as com:
-            pass # Block process
+def compress_video(src, dest):
+    """ Compress video, visually lossless using ffmpeg """
+    # rotation = "rotate='90*PI/180:ow=ih:oh=iw'" # Rotation command
+    command = [
+        "ffmpeg.exe",       # Command
+        "-v", "quiet",      # Don't need to see stuff
+        "-i", src,          # Source
+        "-crf", "18",       # Quality (lower number = higher quality)
+        "-c:v", "libx264",  # codec
+        dest                # Output
+        ]
+    with subprocess.Popen(command, stdout=subprocess.DEVNULL) as com:
+        pass # Block process
 
 def get_candidates(root):
-    """
-    Given a directory. Pull out file names that do not match our naming convention.
-    Return a multi array. [OLD_NAME, NEW_NAME]
-    """
+    """ Given a directory. Pull out file names that do not match our naming convention. """
 
     num_start = 0 # Highest numbered file in folder, add more files from here
     root_name = os.path.basename(root) # Actual folder name of root
@@ -182,7 +128,15 @@ def get_candidates(root):
         new_name["tags"] = tag_check.group(0) if tag_check else ""
 
         # Create a new file name and append it to the original name
-        _, new_name["ext"] = os.path.splitext(media["o_name"])
+        new_name["ext"] = os.path.splitext(media["o_name"])[1].lower()
+        if new_name["ext"] in IMAGES:
+            media["type"] = 1
+        elif new_name["ext"] in VIDEO:
+            media["type"] = 2
+            new_name["ext"] = ".mp4" # Converting all videos to mp4
+        else:
+            media["type"] = 0
+
         media["n_name"] = NAMING_CONVENTION.format(**new_name)
         media["n_path"] = os.path.join(root, media["n_name"])
 
@@ -212,23 +166,45 @@ def DO_IT(root):
             # Create a working directory
             with tempfile.TemporaryDirectory(dir=root) as w_dir:
 
-                # Compress files! Woo!
-                for media in candidates:
-                    media["w_path"] = os.path.join(w_dir, media["o_name"])
-
-                    # PERFORM COMPRESSION #####
-                    os.link(media["o_path"], media["w_path"])
-                    # REPLACE WITH COMPRESSION CODE ####
-
-                # So far so good. Make a backup folder for original files
+                # Create a backup directory for the originals
                 if not os.path.isdir(b_dir):
                     os.mkdir(b_dir)
 
-                # Finally move out our original files
-                # and replace with new ones
+                # Lets go!
                 for media in candidates:
-                    shutil.move(media["o_path"], media["b_path"])
-                    shutil.move(media["w_path"], media["n_path"])
+                    media["w_path"] = os.path.join(w_dir, media["o_name"])
+
+                    # Make a dummy placeholder file to ensure we don't get sniped!
+                    with open(media["n_path"], "w") as dummy:
+                        dummy.write("") # Keep it 0 bytes!
+
+                    # Create a link to the original file, in the backup folder.
+                    # We do this now to prevent any other processes from taking
+                    # the spot while we're busy converting files.
+                    # If something goes wrong halfway we may be left with extra
+                    # files, but they're all hardlinks of originals so who cares!
+                    os.link(media["o_path"], media["b_path"])
+
+                    # Work out which compression type to use.
+                    # Compress into temporary working directory.
+                    print("Compressing: %s => %s" % (media["o_name"]), media["n_name"])
+                    if media["type"] == 1 and IMAGEMIN:
+                        compress_image(media["o_path"], media["w_path"])
+                    elif media["type"] == 2 and FFMPEG:
+                        compress_video(media["o_path"], media["w_path"])
+                    else:
+                        # If not sure of file type. Just link it across instead.
+                        os.link(media["o_path"], media["w_path"])
+
+                    # Finally safely remove the dummy file.
+                    # Replace with the compressed one.
+                    if os.stat(media["n_path"]).st_size:
+                        raise IOError("Failed to delete dummy file: %s" % media["n_name"])
+                    os.unlink(media["n_path"])
+                    os.link(media["w_path"], media["n_path"])
+
+                    # FINALLY FINALLY delete the original file
+                    os.unlink(media["o_path"])
 
                 # And we're done!
 
