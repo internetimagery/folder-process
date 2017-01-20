@@ -3,6 +3,7 @@
 
 # TODO: Possiblity of using ffmpeg to do jpeg compressions too? It works in basic tests
 
+import traceback
 import subprocess
 import tkinter
 import tkinter.messagebox
@@ -25,18 +26,6 @@ BACKUP_DIR = "Originals - Check before deleting" # Where to put original files
 FFMPEG = True if shutil.which("ffmpeg") else False
 IMAGEMIN = True if shutil.which("imagemin") else False
 
-def depend_check():
-    """ Ask if user wants to continue without depedencies """
-    if not FFMPEG or not IMAGEMIN:
-        message = ""
-        if not FFMPEG:
-            message += "Ffmpeg missing. To compress videos install from https://ffmpeg.org/\n"
-        if not IMAGEMIN:
-            message += "Imagemin missing. To compress images install nodejs and run the commands:\n>>>npm install imagemin-cli -g && npm install imagemin-mozjpeg -g\n"
-
-        message += "\nContinue Anyway?"
-        return tkinter.messagebox.askyesno(message=message)
-    return True
 
 def compress_image(src, dest):
     """ Compress image losslessly using imagemin """
@@ -54,6 +43,7 @@ def compress_image(src, dest):
             #         break
             #     f_dest.write(buff)
 
+
 def compress_video(src, dest):
     """ Compress video, visually lossless using ffmpeg """
     # rotation = "rotate='90*PI/180:ow=ih:oh=iw'" # Rotation command
@@ -67,6 +57,7 @@ def compress_video(src, dest):
         ]
     with subprocess.Popen(command, stdout=subprocess.DEVNULL) as com:
         pass # Block process
+
 
 def get_candidates(root):
     """ Given a directory. Pull out file names that do not match our naming convention. """
@@ -145,89 +136,86 @@ def get_candidates(root):
 
 def DO_IT(root):
     """ Lets get to it! """
-    if depend_check():
+    # Get possible files to work on
+    candidates = get_candidates(root)
+    if candidates:
 
-        # Get possible files to work on
-        candidates = get_candidates(root)
-        if candidates:
+        # Backup directory path
+        b_dir = os.path.join(root, BACKUP_DIR)
 
-            # Backup directory path
-            b_dir = os.path.join(root, BACKUP_DIR)
+        # Check that there are no files already in place
+        for media in candidates:
+            media["b_path"] = os.path.join(b_dir, media["o_name"])
 
-            # Check that there are no files already in place
+            if os.path.isfile(media["b_path"]) or os.path.isfile(media["n_path"]):
+                raise FileExistsError("File exists. Please fix and try again. %s" % media["b_path"])
+            if not os.path.isfile(media["o_path"]):
+                raise FileNotFoundError("File missing. Please fix and try again. %s" % media["o_path"])
+
+        # Create a working directory
+        with tempfile.TemporaryDirectory(dir=root) as w_dir:
+
+            # Lets do some compressin'
             for media in candidates:
-                media["b_path"] = os.path.join(b_dir, media["o_name"])
+                media["w_path"] = os.path.join(w_dir, media["o_name"])
 
-                if os.path.isfile(media["b_path"]):
-                    raise FileExistsError("File exists. Please fix and try again. %s" % media["b_path"])
-                if not os.path.isfile(media["o_path"]):
-                    raise FileNotFoundError("File missing. Please fix and try again. %s" % media["o_path"])
-
-            # Create a working directory
-            with tempfile.TemporaryDirectory(dir=root) as w_dir:
-
-                # Create a backup directory for the originals
-                if not os.path.isdir(b_dir):
-                    os.mkdir(b_dir)
-
-                # Lets go!
-                for media in candidates:
-                    media["w_path"] = os.path.join(w_dir, media["o_name"])
-
-                    # Make a dummy placeholder file to ensure we don't get sniped!
-                    with open(media["n_path"], "w") as dummy:
-                        dummy.write("") # Keep it 0 bytes!
-
-                    # Create a link to the original file, in the backup folder.
-                    # We do this now to prevent any other processes from taking
-                    # the spot while we're busy converting files.
-                    # If something goes wrong halfway we may be left with extra
-                    # files, but they're all hardlinks of originals so who cares!
-                    os.link(media["o_path"], media["b_path"])
+                # Make a placeholder file to lock in the spot
+                placeholder = open(media["n_path"], "w")
+                try:
 
                     # Work out which compression type to use.
                     # Compress into temporary working directory.
-                    print("Compressing: %s => %s" % (media["o_name"]), media["n_name"])
+                    # For unknown file type, simply link to working directory.
+                    print("Compressing: %s => %s" % (media["o_name"], media["n_name"]))
                     if media["type"] == 1 and IMAGEMIN:
                         compress_image(media["o_path"], media["w_path"])
                     elif media["type"] == 2 and FFMPEG:
                         compress_video(media["o_path"], media["w_path"])
                     else:
-                        # If not sure of file type. Just link it across instead.
                         os.link(media["o_path"], media["w_path"])
 
-                    # Finally safely remove the dummy file.
-                    # Replace with the compressed one.
-                    if os.stat(media["n_path"]).st_size:
-                        raise IOError("Failed to delete dummy file: %s" % media["n_name"])
+                finally:
+                    # Clean up the placeholder
+                    placeholder.close()
                     os.unlink(media["n_path"])
-                    os.link(media["w_path"], media["n_path"])
 
-                    # FINALLY FINALLY delete the original file
-                    os.unlink(media["o_path"])
+                # Move our compressed file to the root
+                shutil.move(media["w_path"], media["n_path"])
 
-                # And we're done!
+                # Now that we have the compressed file safely complete.
+                # Back up the original file.
+                # If this fails, we will stop. But it's not a big deal as we're not overwriting it.
+                shutil.move(media["o_path"], media["b_path"])
+
+                # Done! Next file!
 
 
 class Main(object):
 
     def __init__(s):
         """ Main window! """
-        # s.last_location = os.getcwd() # Where to start browsing.
+        # Where do we want to start browsing from?
+        # s.last_location = os.getcwd()
         s.last_location = os.path.realpath(os.path.dirname(__file__))
 
+        # Make the main window
         window = tkinter.Tk()
-        window.title("Rename and Compress all media files.")
+        window.title("Rename and Compress Folder.")
 
         # Add a descriptive label
-        desc_label = tkinter.Label(window, text="Rename and Compress all media files.")
+        desc_label = tkinter.Label(window, text="Rename and Compress all files in folder.")
 
         # Add a textbox and button
-        browse_button = tkinter.Button(window, text="Browse Folder", command=s.browse_path)
+        browse_button = tkinter.Button(window, text="Browse Folder", command=s.browse_path, state=tkinter.DISABLED)
 
         # Put it all together!
-        desc_label.pack()
+        desc_label.pack(side=tkinter.TOP)
         browse_button.pack(side=tkinter.BOTTOM)
+
+        # Determine if we have the right dependencies. IF not, do we want to comtinue?
+        if s.depend_check():
+            browse_button.configure(state=tkinter.ACTIVE)
+            browse_button.flash()
 
         # Lets go!
         window.mainloop()
@@ -237,11 +225,37 @@ class Main(object):
         path = tkinter.filedialog.askdirectory(initialdir=s.last_location)
         if path:
             s.last_location = path
-            print(path)
+            try:
+                DO_IT(path)
+            except Exception as err:
+                tkinter.messagebox.showerror(
+                    title="Oh no!",
+                    message="The following error occurred.\n\n%s\n\n%s" % (err, traceback.format_exc())
+                    )
 
+    def depend_check(s):
+        """ Ask if user wants to continue without depedencies """
+        if not FFMPEG or not IMAGEMIN:
+            message = ""
+            if not FFMPEG:
+                message += """
+Ffmpeg missing. To compress videos install from https://ffmpeg.org/
+"""
+            if not IMAGEMIN:
+                message += """
+Imagemin missing. To compress images install nodejs from http://nodejs.org
+Then run the following commands:
+
+>>>npm install imagemin-cli -g
+>>>npm install imagemin-mozjpeg -g
+"""
+
+            message += "\nContinue Anyway?"
+            return tkinter.messagebox.askyesno(message=message)
+        return True
 
 
 if __name__ == '__main__':
-    # Main()
-    TEMPROOT = os.path.join(TEMPROOT, "temp")
-    DO_IT(TEMPROOT)
+    Main()
+    # TEMPROOT = os.path.join(TEMPROOT, "temp")
+    # DO_IT(TEMPROOT)
