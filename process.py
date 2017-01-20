@@ -205,7 +205,7 @@ def DO_IT(root):
                 shutil.move(media["o_path"], media["b_path"])
 
                 # Done! Next file!
-        print("Done! :)")
+        print("="*20, "Done! :)")
 
 
 class Main(object):
