@@ -269,6 +269,11 @@ class Main(object):
         if not FFMPEG or not IMAGEMIN:
             message = ""
             if not FFMPEG:
+#                 """
+# Install Chocolatey from https://chocolatey.org and run the command:
+#
+# >>>choco install ffmpeg
+# """
                 message += """
 Ffmpeg missing. To compress videos install from https://ffmpeg.org/
 """
