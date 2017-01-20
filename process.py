@@ -198,8 +198,6 @@ def DO_IT(root):
                 size_old = os.stat(media["o_path"]).st_size
                 size_new = os.stat(media["w_path"]).st_size
 
-                print(size_old, size_new)
-
                 if size_new and size_new < size_old:
                     # Move our compressed file to the root
                     shutil.move(media["w_path"], media["n_path"])
