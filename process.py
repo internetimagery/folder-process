@@ -1,36 +1,33 @@
 # Shrink images and videos in a folder. Rename files to match folder name.
 # File naming convention: FOLDERNAME_NUMBER
 
-# TODO: Possiblity of using ffmpeg to do jpeg compressions too? It works in basic tests though not as much as mozjpeg. Is it lossless? One less dependency.
+# TODO: Investigate possiblity of using ffmpeg to do jpeg compressions too?
+# It works in basic tests though not as well as mozjpeg. Can it be lossless? One less dependency.
 
+from tkinter import *
+from tkinter.ttk import *
+from tkinter import messagebox
+from tkinter import filedialog
 import traceback
 import subprocess
-import tkinter
-import tkinter.messagebox
-import tkinter.filedialog
 import tempfile
 import shutil
 import os.path
 import os
 import re
 
-
-TEMPROOT = os.path.realpath(os.path.dirname(__file__))
-
 NAMING_CONVENTION = "{root}_{num}{tags}{ext}" # How we're going to name our files
 IMAGES = (".jpg", ".jpeg", ".png")
 VIDEO = (".mp4", ".mov", ".avi", ".wmv", ".rm", ".3gp", ".mkv", ".scm", ".vid", ".mpeg", ".avchd", ".m2ts")
 BACKUP_DIR = "Originals - Check before deleting" # Where to put original files
-
-# Figure out what we can use
-FFMPEG = True if shutil.which("ffmpeg") else False
-IMAGEMIN = True if shutil.which("imagemin") else False
+FFMPEG = shutil.which("ffmpeg")
+IMAGEMIN = shutil.which("imagemin")
 
 
 def compress_image(src, dest):
     """ Compress image losslessly using imagemin """
     command = [
-        "imagemin.cmd",     # Command
+        IMAGEMIN,           # Command
         "--plugin=mozjpeg", # Plugin! Better compression
         src                 # Source!
         ]
@@ -48,7 +45,7 @@ def compress_video(src, dest):
     """ Compress video, visually lossless using ffmpeg """
     # rotation = "rotate='90*PI/180:ow=ih:oh=iw'" # Rotation command
     command = [
-        "ffmpeg.exe",       # Command
+        FFMPEG,             # Command
         "-v", "quiet",      # Don't need to see stuff
         "-i", src,          # Source
         "-crf", "18",       # Quality (lower number = higher quality)
@@ -162,6 +159,9 @@ def DO_IT(root):
         # Create a working directory
         with tempfile.TemporaryDirectory(dir=root) as w_dir:
 
+            total_files = len(candidates)
+            curr_file = 0
+
             # Lets do some compressin'
             for media in candidates:
                 media["w_path"] = os.path.join(w_dir, media["o_name"])
@@ -173,7 +173,8 @@ def DO_IT(root):
                     # Work out which compression type to use.
                     # Compress into temporary working directory.
                     # For unknown file type, simply link to working directory.
-                    print("Compressing: %s => %s" % (media["o_name"], media["n_name"]))
+                    curr_file += 1
+                    print("[%s/%s] Compressing: %s => %s" % (curr_file, total_files, media["o_name"], media["n_name"]))
                     if media["type"] == 1 and IMAGEMIN:
                         compress_image(media["o_path"], media["w_path"])
                     elif media["type"] == 2 and FFMPEG:
@@ -216,37 +217,43 @@ class Main(object):
         s.last_location = os.path.realpath(os.path.dirname(__file__))
 
         # Make the main window
-        window = tkinter.Tk()
+        window = Tk()
         window.title("Rename and Compress Folder.")
 
         # Add a descriptive label
-        desc_label = tkinter.Label(window, text="Rename and Compress all files in folder.")
+        desc_label = Label(window, text="Rename and Compress all files in folder.")
 
-        # Add a textbox and button
-        browse_button = tkinter.Button(window, text="Browse Folder", command=s.browse_path, state=tkinter.DISABLED)
+        # Add a progress bar
+        # s.prog_bar = Progressbar(window, mode="indeterminate")
+
+        # Add a button
+        browse_button = Button(window, text="Browse Folder", command=s.browse_path, state=DISABLED)
 
         # Put it all together!
-        desc_label.pack(side=tkinter.TOP)
-        browse_button.pack(side=tkinter.BOTTOM)
+        desc_label.pack(side=TOP)
+        # s.prog_bar.pack()
+        browse_button.pack(side=BOTTOM)
 
         # Determine if we have the right dependencies. IF not, do we want to comtinue?
         if s.depend_check():
-            browse_button.configure(state=tkinter.ACTIVE)
-            browse_button.flash()
+            browse_button.configure(state=ACTIVE)
 
         # Lets go!
         window.mainloop()
 
     def browse_path(s):
         """ Browse to find a path """
-        path = tkinter.filedialog.askdirectory(initialdir=s.last_location)
+        path = filedialog.askdirectory(initialdir=s.last_location)
         if path:
             s.last_location = path
-            if tkinter.messagebox.askokcancel(message="About to process files in:\n\n%s" % path):
+            if messagebox.askokcancel(message="Keep an eye on the console.\nAbout to process files in:\n\n%s" % path):
+                import time
+                # s.prog_bar.start()
                 try:
                     DO_IT(os.path.realpath(path))
                 except Exception as err:
-                    tkinter.messagebox.showerror(
+                    # s.prog_bar.stop()
+                    messagebox.showerror(
                         title="Oh no!",
                         message="The following error occurred.\n\n%s\n\n%s" % (err, traceback.format_exc())
                         )
@@ -269,7 +276,7 @@ Then run the following commands:
 """
 
             message += "\nContinue Anyway?"
-            return tkinter.messagebox.askyesno(message=message)
+            return messagebox.askyesno(message=message)
         return True
 
 
