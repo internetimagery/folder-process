@@ -173,7 +173,7 @@ def DO_IT(root):
 
                     # Create a temporary file with a different name
                     # as some programs have a fit with square brackets etc
-                    safe_name = os.path.join(w_dir, str(uuid.uuid4()))
+                    safe_name = os.path.join(w_dir, str(uuid.uuid4())) + os.path.splitext(media["o_name"])[1]
                     os.link(media["o_path"], safe_name)
 
                     # Work out which compression type to use.
