@@ -8,22 +8,21 @@ IMAGES = [".jpg", ".jpeg", ".png"]
 VIDEO = [".mp4", ".mov", ".avi", ".wmv", ".rm", ".3gp", ".mkv", ".scm", ".vid", ".mpeg", ".avchd", ".m2ts"]
 BACKUP_DIR = "Originals - Check before deleting" # Where to put original files
 
+
 # Grab possible files we can use from the root directory
 get_candidates = (root, callback)->
   fs.readdir root, (err, files)->
-    if err
-      callback err
-    else
+    return callback err if err
 
-      num_start = 0 # Where do we start our file numbering?
-      root_name = path.basename(root) # Name of folder
-      tag_convention = /\[.+?\]/
-      naming_convention = new RegExp escape_str(root_name) + "_(\\d+)"
-      candidates = []
+    num_start = 0 # Where do we start our file numbering?
+    root_name = path.basename(root) # Name of folder
+    tag_convention = /\[.+?\]/
+    naming_convention = new RegExp escape_str(root_name) + "_(\\d+)"
+    candidates = []
 
-      # Look through file and grab files that don't match the naming convention
-      # for media in (f f/or f in scandir(root) if f.is_file(follow_symlinks=False)):
-      for m_name in files
+    # Look through file and grab files that don't match the naming convention
+    # for media in (f f/or f in scandir(root) if f.is_file(follow_symlinks=False)):
+    for m_name in files
         m_path = path.join root, m_name
         if fs.lstatSync(m_path).isFile()
           check = naming_convention.exec m_name # Check the file matches convention
@@ -69,7 +68,6 @@ get_candidates = (root, callback)->
 
         media.n_name = "#{root_name}_#{num_str}#{tags}#{ext}"
         media.n_path = path.join root, media.n_name
-        console.log media
 
       callback null, candidates
 
@@ -80,5 +78,8 @@ this.main = (root)->
   # Check we have read write permission first
   fs.access root, fs.constants.R_OK | fs.constants.W_OK, (err)->
     console.error err if err
-    get_candidates root, (err, files)->
+    get_candidates root, (err, candidates)->
       console.error err if err
+
+      for media in candidates
+        console.log media.o_name
