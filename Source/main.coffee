@@ -2,10 +2,10 @@
 
 fs = require 'fs'
 path = require 'path'
-escape_str = require "escape-string-regexp"
-child_process = require 'child_process'
 mozjpeg = require 'mozjpeg'
 ffmpeg = require 'ffmpeg-static'
+child_process = require 'child_process'
+escape_str = require "escape-string-regexp"
 
 
 IMAGES = [".jpg", ".jpeg", ".png"]
@@ -15,7 +15,8 @@ BACKUP_DIR = "Originals - Check before deleting" # Where to put original files
 
 # Compress video to h264 with ffmpeg
 compress_video = (src, dest, callback)->
-  child_process.execFile ffmpeg.path, ["-v", "quiet", "-i", src, "-crf", "18", "-c:v", "libx264", dest], (err)->
+  quality = 18 # 20 # Lower number, higher quality
+  child_process.execFile ffmpeg.path, ["-v", "quiet", "-i", src, "-crf", quality, "-c:v", "libx264", dest], (err)->
     return callback err if err
     callback null
 
