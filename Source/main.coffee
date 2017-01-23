@@ -3,6 +3,9 @@
 fs = require 'fs'
 path = require 'path'
 escape_str = require "escape-string-regexp"
+child_process = require 'child_process'
+mozjpeg = require 'mozjpeg'
+
 
 IMAGES = [".jpg", ".jpeg", ".png"]
 VIDEO = [".mp4", ".mov", ".avi", ".wmv", ".rm", ".3gp", ".mkv", ".scm", ".vid", ".mpeg", ".avchd", ".m2ts"]
@@ -15,32 +18,9 @@ compress_video = (src, dest, callback)->
     callback null
 
 compress_image = (src, dest, callback)->
-  fs.link src, dest, (err)->
+  child_process.execFile mozjpeg, ["-outfile", dest, src], (err)->
     return callback err if err
     callback null
-
-
-                #
-                # # TIME TO MAKE A CHOICE!
-                # # Pick the smallest file. Compressing a compressed file can lead to a larger one.
-                # size_old = os.stat(media["o_path"]).st_size
-                # size_new = os.stat(media["w_path"]).st_size
-                #
-                # if size_new and size_new < size_old:
-                #     # Move our compressed file to the root
-                #     shutil.move(media["w_path"], media["n_path"])
-                # else:
-                #     # Otherwise we didn't really accomplish much. Discard compressed file.
-                #     os.link(media["o_path"], media["n_path"])
-                #
-                # # Now that we have the compressed file safely complete.
-                # # Back up the original file.
-                # # If this fails, we will stop. But it's not a big deal as we're not overwriting it.
-                # shutil.move(media["o_path"], media["b_path"])
-                #
-                # # Done! Next file!
-
-
 
 # Grab possible files we can use from the root directory
 get_candidates = (root, callback)->
@@ -140,13 +120,16 @@ this.main = (root, callback)->
                 fs.mkdir b_dir, (err)->
                   return callback err if err? and err.code != "EEXIST"
 
+
+                  total_files = candidates.length
+                  current_file = 0
+
                   candidates.forEach (media)->
 
                     # Work out which compression type to use.
                     # Compress into temporary working directory.
                     # For unknown file type, simply link to working directory.
                     compress_func = null
-                    console.log "Compressing: #{media.o_name} => #{media.n_name}"
                     switch media.type
                       when 1 then compress_func = compress_image
                       when 2 then compress_func = compress_video
@@ -165,7 +148,8 @@ this.main = (root, callback)->
                               return callback err if err
                               fs.unlink media.o_path, (err)->
                                 return callback err if err
-                                console.log "Compression complete: #{media.o_name}"
+                                current_file += 1
+                                console.log "[#{current_file}/#{total_files}] Compression complete: #{media.o_name} => #{media.n_name}"
                                 callback null, media
                           else
                             fs.unlink media.n_path, (err)->
@@ -176,7 +160,8 @@ this.main = (root, callback)->
                                   return callback err if err
                                   fs.unlink media.o_path, (err)->
                                     return callback err if err
-                                    console.log "Compression unneeded: #{media.o_name}"
+                                    current_file += 1
+                                    console.log "[#{current_file}/#{total_files}] Compression unneeded: #{media.o_name} => #{media.n_name}"
                                     callback null, media
                           # DONE!
 
