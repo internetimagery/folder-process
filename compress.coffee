@@ -133,44 +133,45 @@ this.main = (root, callback)->
         current_file = 0
 
         candidates.forEach (media)->
+          media.b_path = path.join b_dir, media.o_name
 
-        # Work out which compression type to use.
-        # Compress into temporary working directory.
-        # For unknown file type, simply link to working directory.
-        compress_func = null
-        switch media.type
-          when 1 then compress_func = compress_image
-          when 2 then compress_func = compress_video
-          else compress_func = safe_link
+          # Work out which compression type to use.
+          # Compress into temporary working directory.
+          # For unknown file type, simply link to working directory.
+          compress_func = null
+          switch media.type
+            when 1 then compress_func = compress_image
+            when 2 then compress_func = compress_video
+            else compress_func = safe_link
 
-        compress_func media.o_path, media.n_path, (err)->
-          # If something went wrong with our compression, clean up
-          if err
-            return fs.unlink media.n_path, (err2)->
-              callback err
-              callback err2 if err2
-            
-          fs.stat media.o_path, (err, o_stat)->
-            return callback err if err
-            fs.stat media.n_path, (err, n_stat)->
+          compress_func media.o_path, media.n_path, (err)->
+            # If something went wrong with our compression, clean up
+            if err
+              return fs.unlink media.n_path, (err2)->
+                callback err
+                callback err2 if err2
+
+            fs.stat media.o_path, (err, o_stat)->
               return callback err if err
-
-              # Back up the original!
-              safe_link media.o_path, media.b_path, (err)->
+              fs.stat media.n_path, (err, n_stat)->
                 return callback err if err
-                fs.unlink media.o_path, (err)->
-                  return callback err if err
 
-                  # Compare the two sizes. If the compression did NOT shrink
-                  # the file. Then just keep the original.
-                  if n_stat.size < o_stat.size
-                    current_file += 1
-                    callback null, "[#{current_file}/#{total_files}] Compression complete: #{media.o_name} => #{media.n_name}"
-                  else
-                    fs.unlink media.n_path, (err)->
-                      return callback err if err
-                      safe_link media.b_path, media.n_path, (err)->
+                # Back up the original!
+                safe_link media.o_path, media.b_path, (err)->
+                  return callback err if err
+                  fs.unlink media.o_path, (err)->
+                    return callback err if err
+
+                    # Compare the two sizes. If the compression did NOT shrink
+                    # the file. Then just keep the original.
+                    if n_stat.size < o_stat.size
+                      current_file += 1
+                      callback null, "[#{current_file}/#{total_files}] Compression complete: #{media.o_name} => #{media.n_name}"
+                    else
+                      fs.unlink media.n_path, (err)->
                         return callback err if err
-                        current_file += 1
-                        callback null, "[#{current_file}/#{total_files}] Compression unneeded: #{media.o_name} => #{media.n_name}"
-            # DONE!
+                        safe_link media.b_path, media.n_path, (err)->
+                          return callback err if err
+                          current_file += 1
+                          callback null, "[#{current_file}/#{total_files}] Compression unneeded: #{media.o_name} => #{media.n_name}"
+              # DONE!
