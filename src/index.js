@@ -1,44 +1,51 @@
-'use strict';
-const electron = require('electron');
+(function() {
+  var app, createMainWindow, electron, onClosed;
 
-const app = electron.app;
+  electron = require("electron");
 
-// adds debug features like hotkeys for triggering dev tools and reload
-require('electron-debug')();
+  app = electron.app;
 
-// prevent window being garbage collected
-let mainWindow;
+  this.mainWindow = null;
 
-function onClosed() {
-	// dereference the window
-	// for multiple windows store them in an array
-	mainWindow = null;
-}
+  onClosed = (function(_this) {
+    return function() {
+      return _this.mainWindow = null;
+    };
+  })(this);
 
-function createMainWindow() {
-	const win = new electron.BrowserWindow({
-		width: 600,
-		height: 400
-	});
+  createMainWindow = (function(_this) {
+    return function() {
+      var win;
+      win = new electron.BrowserWindow({
+        width: 600,
+        height: 400
+      });
+      win.loadURL("file://" + __dirname + "/index.html");
+      win.on("closed", onClosed);
+      return win;
+    };
+  })(this);
 
-	win.loadURL(`file://${__dirname}/index.html`);
-	win.on('closed', onClosed);
+  app.on("window-all-closed", (function(_this) {
+    return function() {
+      if (process.platform !== "darwin") {
+        return app.quit();
+      }
+    };
+  })(this));
 
-	return win;
-}
+  app.on("activate", (function(_this) {
+    return function() {
+      if (!_this.mainWindow) {
+        return _this.mainWindow = createMainWindow();
+      }
+    };
+  })(this));
 
-app.on('window-all-closed', () => {
-	if (process.platform !== 'darwin') {
-		app.quit();
-	}
-});
+  app.on("ready", (function(_this) {
+    return function() {
+      return _this.mainWindow = createMainWindow();
+    };
+  })(this));
 
-app.on('activate', () => {
-	if (!mainWindow) {
-		mainWindow = createMainWindow();
-	}
-});
-
-app.on('ready', () => {
-	mainWindow = createMainWindow();
-});
+}).call(this);

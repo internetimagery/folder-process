@@ -1,14 +1,29 @@
 # folder-process
 
-Run on a folder to do the following:
+> Rename and compress photos and videos in a folder.
 
-* Rename files to the same name as the containing folder. Numbered.
-* Compress files (images / video) to save space.
-* Retain text within square brackets [] for compatability with Tagspaces.
 
-Has two dependencies for compression.
-* FFMPEG. Download from https://ffmpeg.org/
-* IMAGEMIN. Download nodejs from http://nodejs.org and run the following code:
-```shell
-npm install imagemin-cli -g && npm install imagemin-mozjpeg -g
+## Dev
+
 ```
+$ npm install
+```
+
+### Run
+
+```
+$ npm start
+```
+
+### Build
+
+```
+$ npm run build
+```
+
+Builds the app for macOS, Linux, and Windows, using [electron-packager](https://github.com/electron-userland/electron-packager).
+
+
+## License
+
+MIT © [Jason Dixon](http://internetimagery.com)
