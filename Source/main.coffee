@@ -5,6 +5,7 @@ path = require 'path'
 escape_str = require "escape-string-regexp"
 child_process = require 'child_process'
 mozjpeg = require 'mozjpeg'
+ffmpeg = require 'ffmpeg-static'
 
 
 IMAGES = [".jpg", ".jpeg", ".png"]
@@ -12,11 +13,13 @@ VIDEO = [".mp4", ".mov", ".avi", ".wmv", ".rm", ".3gp", ".mkv", ".scm", ".vid", 
 BACKUP_DIR = "Originals - Check before deleting" # Where to put original files
 
 
+# Compress video to h264 with ffmpeg
 compress_video = (src, dest, callback)->
-  fs.link src, dest, (err)->
+  child_process.execFile ffmpeg.path, ["-v", "quiet", "-i", src, "-crf", "18", "-c:v", "libx264", dest], (err)->
     return callback err if err
     callback null
 
+# Compress images with mozjpeg
 compress_image = (src, dest, callback)->
   child_process.execFile mozjpeg, ["-outfile", dest, src], (err)->
     return callback err if err
@@ -164,17 +167,3 @@ this.main = (root, callback)->
                                     console.log "[#{current_file}/#{total_files}] Compression unneeded: #{media.o_name} => #{media.n_name}"
                                     callback null, media
                           # DONE!
-
-
-
-
-
-
-
-
-
-
-
-
-
-                  console.log "ok"

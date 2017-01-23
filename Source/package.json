@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "escape-string-regexp": "^1.0.5",
+    "ffmpeg-static": "^2.0.0",
     "mozjpeg": "^4.1.1"
   }
 }
