@@ -152,20 +152,18 @@ this.main = (root, callback)->
               # Back up the original!
               safe_link media.o_path, media.b_path, (err)->
                 return callback err if err
+                fs.unlink media.o_path, (err)->
+                  return callback err if err
 
-                # Compare the two sizes. If the compression did NOT shrink
-                # the file. Then just keep the original.
-                if n_stat.size < o_stat.size
-                  fs.unlink media.o_path, (err)->
-                    return callback err if err
+                  # Compare the two sizes. If the compression did NOT shrink
+                  # the file. Then just keep the original.
+                  if n_stat.size < o_stat.size
                     current_file += 1
                     callback null, "[#{current_file}/#{total_files}] Compression complete: #{media.o_name} => #{media.n_name}"
-                else
-                  fs.unlink media.n_path, (err)->
-                    return callback err if err
-                    safe_link media.o_path, media.n_path, (err)->
+                  else
+                    fs.unlink media.n_path, (err)->
                       return callback err if err
-                      fs.unlink media.o_path, (err)->
+                      safe_link media.b_path, media.n_path, (err)->
                         return callback err if err
                         current_file += 1
                         callback null, "[#{current_file}/#{total_files}] Compression unneeded: #{media.o_name} => #{media.n_name}"
