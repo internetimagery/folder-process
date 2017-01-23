@@ -4,6 +4,7 @@ fs = require 'fs'
 path = require 'path'
 mozjpeg = require 'mozjpeg'
 ffmpeg = require 'ffmpeg-static'
+utility = require './utility.js'
 child_process = require 'child_process'
 escape_str = require "escape-string-regexp"
 
@@ -92,77 +93,59 @@ get_candidates = (root, callback)->
 # Lets do it! Return (err, message)
 this.main = (root, callback)->
 
-  # Check we have read write permission first
-  fs.access root, fs.constants.R_OK | fs.constants.W_OK, (err)->
+  # Get a list of file names that do not match our naming convention.
+  get_candidates root, (err, candidates)->
     return callback err if err
-    get_candidates root, (err, candidates)->
-      return callback err if err
 
-      if not candidates.length
-        return callback null, "Nothing to compress."
-      else
-        b_dir = path.join root, BACKUP_DIR
+    # No candidates? Let us know that it's ok!
+    if not candidates.length
+      return callback null, "Nothing to compress."
+    else
+      b_dir = path.join root, BACKUP_DIR
 
-        # Check there are no files already in place
-        # Even though other files could pop up later,
-        # This early check enables us to stop before doing
-        # expensive compressing early.
-        i = candidates.length
+      # Create backup directory
+      fs.mkdir b_dir, (err)->
+        return callback err if err? and err.code != "EEXIST"
+
+        # Track and report our progress!
+        total_files = candidates.length
+        current_file = 0
+
         candidates.forEach (media)->
-          media.b_path = path.join b_dir, media.o_name
 
-          fs.access media.n_path, (err)-> # Check we have nothing in backup already
-            return callback new Error "File exists. Please fix and try again. #{media.n_path}" if not err? or err.code != "ENOENT"
+        # Work out which compression type to use.
+        # Compress into temporary working directory.
+        # For unknown file type, simply link to working directory.
+        compress_func = null
+        switch media.type
+          when 1 then compress_func = compress_image
+          when 2 then compress_func = compress_video
+          else compress_func = utility.safe_link
 
-            fs.access media.b_path, (err)-> # Check we have nothing in backup already
-              return callback new Error "File exists. Please fix and try again. #{media.o_path}" if not err? or err.code != "ENOENT"
+        compress_func media.o_path, media.n_path, (err)->
+          fs.stat media.o_path, (err, o_stat)->
+            return callback err if err
+            fs.stat media.n_path, (err, n_stat)->
+              return callback err if err
 
-              i -= 1
-              if i == 0 # We are ok to continue, no errors.
-
-                # Create backup directory
-                fs.mkdir b_dir, (err)->
-                  return callback err if err? and err.code != "EEXIST"
-
-
-                  total_files = candidates.length
-                  current_file = 0
-
-                  candidates.forEach (media)->
-
-                    # Work out which compression type to use.
-                    # Compress into temporary working directory.
-                    # For unknown file type, simply link to working directory.
-                    compress_func = null
-                    switch media.type
-                      when 1 then compress_func = compress_image
-                      when 2 then compress_func = compress_video
-                      else compress_func = fs.link
-
-                    compress_func media.o_path, media.n_path, (err)->
-                      fs.stat media.o_path, (err, o_stat)->
+              # Compare the two sizes. If the compression did NOT shrink
+              # the file. Then just keep the original.
+              if n_stat.size < o_stat.size
+                utility.safe_link media.o_path, media.b_path, (err)->
+                  return callback err if err
+                  fs.unlink media.o_path, (err)->
+                    return callback err if err
+                    current_file += 1
+                    callback null, "[#{current_file}/#{total_files}] Compression complete: #{media.o_name} => #{media.n_name}"
+              else
+                fs.unlink media.n_path, (err)->
+                  return callback err if err
+                  utility.safe_link media.o_path, media.n_path, (err)->
+                    return callback err if err
+                    utility.safe_link media.o_path, media.b_path, (err)->
+                      return callback err if err
+                      fs.unlink media.o_path, (err)->
                         return callback err if err
-                        fs.stat media.n_path, (err, n_stat)->
-                          return callback err if err
-
-                          # Compare the two sizes. If the compression did NOT shrink
-                          # the file. Then just keep the original.
-                          if n_stat.size < o_stat.size
-                            fs.link media.o_path, media.b_path, (err)->
-                              return callback err if err
-                              fs.unlink media.o_path, (err)->
-                                return callback err if err
-                                current_file += 1
-                                callback null, "[#{current_file}/#{total_files}] Compression complete: #{media.o_name} => #{media.n_name}"
-                          else
-                            fs.unlink media.n_path, (err)->
-                              return callback err if err
-                              fs.link media.o_path, media.n_path, (err)->
-                                return callback err if err
-                                fs.link media.o_path, media.b_path, (err)->
-                                  return callback err if err
-                                  fs.unlink media.o_path, (err)->
-                                    return callback err if err
-                                    current_file += 1
-                                    callback null, "[#{current_file}/#{total_files}] Compression unneeded: #{media.o_name} => #{media.n_name}"
-                          # DONE!
+                        current_file += 1
+                        callback null, "[#{current_file}/#{total_files}] Compression unneeded: #{media.o_name} => #{media.n_name}"
+            # DONE!
