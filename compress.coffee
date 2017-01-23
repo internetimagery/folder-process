@@ -4,7 +4,6 @@ fs = require 'fs'
 path = require 'path'
 mozjpeg = require 'mozjpeg'
 ffmpeg = require 'ffmpeg-static'
-utility = require './utility.js'
 child_process = require 'child_process'
 escape_str = require "escape-string-regexp"
 
@@ -26,6 +25,28 @@ compress_image = (src, dest, callback)->
   child_process.execFile mozjpeg, ["-outfile", dest, src], (err)->
     return callback err if err
     callback null
+
+# Link a file to another file.
+# If the other file exists. Check inode to see if the files are actually the same
+safe_link = (src, dest, callback)->
+  fs.link src, dest, (err)->
+    if err
+      # If the file already exists, that could be ok. If it's the same file
+      if err.code == "EEXIST"
+        fs.stat src, (err2, src_stats)->
+          return callback err2 if err2
+          fs.stat src, (err2, dest_stats)->
+            return callback err2 if err2
+            # Check if the two files are in fact the same.
+            if src_stats.ino == dest_stats.ino
+              callback null
+            else
+              # File exists, but is not the same file, so rethrow the error
+              callback err
+      else
+        callback err
+    else
+      callback null
 
 # Grab possible files we can use from the root directory
 get_candidates = (root, callback)->
@@ -120,7 +141,7 @@ this.main = (root, callback)->
         switch media.type
           when 1 then compress_func = compress_image
           when 2 then compress_func = compress_video
-          else compress_func = utility.safe_link
+          else compress_func = safe_link
 
         compress_func media.o_path, media.n_path, (err)->
           fs.stat media.o_path, (err, o_stat)->
@@ -128,21 +149,21 @@ this.main = (root, callback)->
             fs.stat media.n_path, (err, n_stat)->
               return callback err if err
 
-              # Compare the two sizes. If the compression did NOT shrink
-              # the file. Then just keep the original.
-              if n_stat.size < o_stat.size
-                utility.safe_link media.o_path, media.b_path, (err)->
-                  return callback err if err
+              # Back up the original!
+              safe_link media.o_path, media.b_path, (err)->
+                return callback err if err
+
+                # Compare the two sizes. If the compression did NOT shrink
+                # the file. Then just keep the original.
+                if n_stat.size < o_stat.size
                   fs.unlink media.o_path, (err)->
                     return callback err if err
                     current_file += 1
                     callback null, "[#{current_file}/#{total_files}] Compression complete: #{media.o_name} => #{media.n_name}"
-              else
-                fs.unlink media.n_path, (err)->
-                  return callback err if err
-                  utility.safe_link media.o_path, media.n_path, (err)->
+                else
+                  fs.unlink media.n_path, (err)->
                     return callback err if err
-                    utility.safe_link media.o_path, media.b_path, (err)->
+                    safe_link media.o_path, media.n_path, (err)->
                       return callback err if err
                       fs.unlink media.o_path, (err)->
                         return callback err if err
