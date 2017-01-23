@@ -89,7 +89,7 @@ get_candidates = (root, callback)->
       callback null, candidates
 
 
-# Lets do it!
+# Lets do it! Return (err, message)
 this.main = (root, callback)->
 
   # Check we have read write permission first
@@ -98,9 +98,9 @@ this.main = (root, callback)->
     get_candidates root, (err, candidates)->
       return callback err if err
 
-
-      if candidates
-
+      if not candidates.length
+        return callback null, "Nothing to compress."
+      else
         b_dir = path.join root, BACKUP_DIR
 
         # Check there are no files already in place
@@ -153,8 +153,7 @@ this.main = (root, callback)->
                               fs.unlink media.o_path, (err)->
                                 return callback err if err
                                 current_file += 1
-                                console.log "[#{current_file}/#{total_files}] Compression complete: #{media.o_name} => #{media.n_name}"
-                                callback null, media
+                                callback null, "[#{current_file}/#{total_files}] Compression complete: #{media.o_name} => #{media.n_name}"
                           else
                             fs.unlink media.n_path, (err)->
                               return callback err if err
@@ -165,6 +164,5 @@ this.main = (root, callback)->
                                   fs.unlink media.o_path, (err)->
                                     return callback err if err
                                     current_file += 1
-                                    console.log "[#{current_file}/#{total_files}] Compression unneeded: #{media.o_name} => #{media.n_name}"
-                                    callback null, media
+                                    callback null, "[#{current_file}/#{total_files}] Compression unneeded: #{media.o_name} => #{media.n_name}"
                           # DONE!

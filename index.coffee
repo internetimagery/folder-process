@@ -12,8 +12,12 @@ if process.argv[2]?
       if err
         console.error err
       else
-        main.main root, (err)->
-          console.error err if err
+        main.main root, (err, msg)->
+          if err
+            console.error err
+          else
+            console.log msg
+          
 
 else
   console.log "Please provide a path."
