@@ -1,55 +1,26 @@
 (function() {
-  var app, createMainWindow, electron, onClosed;
+  var app, path, window;
 
-  electron = require("electron");
+  app = require("electron").app;
 
-  app = electron.app;
+  path = require("path");
 
-  this.mainWindow = null;
+  window = require("electron-window");
 
-  onClosed = (function(_this) {
-    return function() {
-      return _this.mainWindow = null;
-    };
-  })(this);
-
-  createMainWindow = (function(_this) {
-    return function() {
-      var win;
-      win = new electron.BrowserWindow({
-        width: 500,
-        height: 600
-      });
-      win.loadURL("file://" + __dirname + "/index.html");
-      win.on("closed", onClosed);
-      return win;
-    };
-  })(this);
-
-  app.on("window-all-closed", (function(_this) {
-    return function() {
-      if (process.platform !== "darwin") {
-        return app.quit();
-      }
-    };
-  })(this));
-
-  app.on("activate", (function(_this) {
-    return function() {
-      if (!_this.mainWindow) {
-        return _this.mainWindow = createMainWindow();
-      }
-    };
-  })(this));
-
-  app.on("ready", (function(_this) {
-    return function() {
-      app.on("browser-window-created", function(err, win) {
-        return win.setMenu(null);
-      });
-      _this.mainWindow = createMainWindow();
-      return _this.mainWindow.webContents.openDevTools();
-    };
-  })(this));
+  app.on("ready", function() {
+    var indexPath, mainWindow;
+    app.on("browser-window-created", function(err, win) {
+      return win.setMenu(null);
+    });
+    mainWindow = window.createWindow({
+      width: 500,
+      height: 600
+    });
+    indexPath = path.resolve(__dirname, "index.html");
+    return mainWindow.showUrl(indexPath, function() {
+      console.log("Window up and running!");
+      return mainWindow.webContents.openDevTools();
+    });
+  });
 
 }).call(this);

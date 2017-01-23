@@ -34,3 +34,11 @@ body {
 	border-top-left-radius: 10px;
 	border-top-right-radius: 10px;
 }
+
+.empty {
+	background-color: rgba(255, 255, 255, 0.0);
+}
+
+.drag {
+	background-color: rgba(255, 255, 255, 0.5);
+}

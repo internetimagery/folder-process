@@ -27,6 +27,7 @@
   "dependencies": {
     "bootstrap": "^3.3.7",
     "electron-debug": "^1.0.0",
+    "electron-window": "^0.8.1",
     "escape-string-regexp": "^1.0.5",
     "ffmpeg-static": "^2.0.0",
     "mozjpeg": "^4.1.1"

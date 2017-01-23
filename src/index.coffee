@@ -1,35 +1,19 @@
 # Run the app!
+{app} = require "electron"
+path = require "path"
+window = require "electron-window"
 
-electron = require "electron"
-app = electron.app
-
-# Hold reference to keep app running
-@mainWindow = null
-
-onClosed = ()=>
-  # dereference the window
-  @mainWindow = null
-
-createMainWindow = ()=>
-  win = new electron.BrowserWindow
-    width: 500
-    height: 600
-
-  win.loadURL "file://#{__dirname}/index.html"
-  win.on "closed", onClosed
-  return win
-
-app.on "window-all-closed", ()=>
-  app.quit() if process.platform != "darwin"
-
-app.on "activate", ()=>
-  @mainWindow = createMainWindow() if !@mainWindow
-
-app.on "ready", ()=>
+app.on "ready", ()->
   # Turn off the default menu
   app.on "browser-window-created", (err, win)->
-    win.setMenu null
-  @mainWindow = createMainWindow()
+      win.setMenu null
+  mainWindow = window.createWindow
+    width: 500
+    height: 600
+  indexPath = path.resolve __dirname, "index.html"
 
-  # Open the DevTools.
-  @mainWindow.webContents.openDevTools()
+
+
+  mainWindow.showUrl indexPath, ()->
+    console.log "Window up and running!"
+    mainWindow.webContents.openDevTools()
