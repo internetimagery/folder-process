@@ -8,7 +8,7 @@ app.on "ready", ()->
   app.on "browser-window-created", (err, win)->
       win.setMenu null
   mainWindow = window.createWindow
-    width: 500
+    width: 800
     height: 600
   indexPath = path.resolve __dirname, "index.html"
 

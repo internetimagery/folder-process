@@ -1,8 +1,10 @@
 # Run the webpage!
 console.log "Running Main.js"
 
-# Send messages to the console
-message = document.getElementById "console"
+# Alert us when things happen!
+alertify = require "alertifyjs"
+compress = require "./js/compress.js"
+fs = require 'fs'
 
 # Display progress on progress bar
 progress = document.getElementById "progress"
@@ -22,7 +24,15 @@ drag_drop.ondrop = (e)->
   e.preventDefault()
   drag_drop.className = "empty"
 
-  for f in e.dataTransfer.files
-    console.log f
+  if e.dataTransfer.files.length
 
-  return false
+    for file in e.dataTransfer.files
+      do (file)->
+        fs.stat file.path, (err, stats)->
+          if stats.isDirectory()
+
+            console.log file.name
+          else
+            alertify.warning "#{file.name} is not a folder.", ()->
+
+    return false
