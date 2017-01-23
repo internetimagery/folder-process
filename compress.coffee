@@ -144,6 +144,12 @@ this.main = (root, callback)->
           else compress_func = safe_link
 
         compress_func media.o_path, media.n_path, (err)->
+          # If something went wrong with our compression, clean up
+          if err
+            return fs.unlink media.n_path, (err2)->
+              callback err
+              callback err2 if err2
+            
           fs.stat media.o_path, (err, o_stat)->
             return callback err if err
             fs.stat media.n_path, (err, n_stat)->
