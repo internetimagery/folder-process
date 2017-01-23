@@ -5,9 +5,14 @@ console.log "Running Main.js"
 alertify = require "alertifyjs"
 compress = require "./js/compress.js"
 fs = require 'fs'
+ProgressBar = require "progressbar.js"
+
+
 
 # Display progress on progress bar
-progress = document.getElementById "progress"
+progress_indicator = new ProgressBar.Circle "#progress",
+  color: "#FFFFFF"
+  strokeWidth: 2.1
 
 # Allow drag and drop of folders to process
 drag_drop = document.getElementById "drop"
@@ -30,8 +35,17 @@ drag_drop.ondrop = (e)->
       do (file)->
         fs.stat file.path, (err, stats)->
           if stats.isDirectory()
+            progress_indicator.animate 1, ()->
+              progress_indicator.animate 0
 
-            console.log file.name
+            return
+            compress.main file.path, (err, message)->
+              if err
+                console.error err
+                alertify.error err.message
+              else
+                console.log message
+                alertify.notify message
           else
             alertify.warning "#{file.name} is not a folder.", ()->
 
