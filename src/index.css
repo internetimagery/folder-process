@@ -2,26 +2,22 @@ html,
 body {
 	padding: 0;
 	margin: 0;
+	background-color: #DDDDDD;
+	/*background-image: url(img/sky_gradient.jpg);*/
 }
 
 body {
 	font-family: -apple-system, 'Helvetica Neue', Helvetica, sans-serif;
+	color: #111111;
 }
 
-header {
-	position: absolute;
-	width: 500px;
-	height: 250px;
-	top: 50%;
-	left: 50%;
-	margin-top: -125px;
-	margin-left: -250px;
-	text-align: center;
-}
-
-header h1 {
-	font-size: 60px;
-	font-weight: 100;
-	margin: 0;
-	padding: 0;
+#drop {
+	margin-top: 40px;
+	margin-left: 40px;
+	margin-right: 40px;
+	/*background-color: red;*/
+	height: 200px;
+	border-radius: 10px;
+	border: 2px dashed #111111;
+	box-shadow: inset 0px 2px 1px black;
 }

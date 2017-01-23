@@ -47,7 +47,8 @@
       app.on("browser-window-created", function(err, win) {
         return win.setMenu(null);
       });
-      return _this.mainWindow = createMainWindow();
+      _this.mainWindow = createMainWindow();
+      return _this.mainWindow.webContents.openDevTools();
     };
   })(this));
 

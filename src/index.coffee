@@ -30,3 +30,6 @@ app.on "ready", ()=>
   app.on "browser-window-created", (err, win)->
     win.setMenu null
   @mainWindow = createMainWindow()
+
+  # Open the DevTools.
+  @mainWindow.webContents.openDevTools()
