@@ -13,7 +13,7 @@ app.on "ready", ()->
   indexPath = path.resolve __dirname, "index.html"
 
 
-
   mainWindow.showUrl indexPath, ()->
     console.log "Window up and running!"
-    mainWindow.webContents.openDevTools()
+    # mainWindow.webContents.openDevTools()
+    mainWindow.setResizable false

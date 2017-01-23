@@ -49,7 +49,7 @@ safe_link = (src, dest, callback)->
       callback null
 
 # Grab possible files we can use from the root directory
-get_candidates = (root, callback)->
+@get_candidates = (root, callback)->
   fs.readdir root, (err, files)->
     return callback err if err
 
@@ -112,16 +112,8 @@ get_candidates = (root, callback)->
 
 
 # Lets do it! Return (err, message)
-this.main = (root, callback)->
+@main = (root, candidates, callback)->
 
-  # Get a list of file names that do not match our naming convention.
-  get_candidates root, (err, candidates)->
-    return callback err if err
-
-    # No candidates? Let us know that it's ok!
-    if not candidates.length
-      return callback null, "Nothing to compress."
-    else
       b_dir = path.join root, BACKUP_DIR
 
       # Create backup directory
