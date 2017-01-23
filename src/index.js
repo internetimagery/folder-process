@@ -17,8 +17,8 @@
     return function() {
       var win;
       win = new electron.BrowserWindow({
-        width: 600,
-        height: 400
+        width: 500,
+        height: 600
       });
       win.loadURL("file://" + __dirname + "/index.html");
       win.on("closed", onClosed);
@@ -44,6 +44,9 @@
 
   app.on("ready", (function(_this) {
     return function() {
+      app.on("browser-window-created", function(err, win) {
+        return win.setMenu(null);
+      });
       return _this.mainWindow = createMainWindow();
     };
   })(this));
