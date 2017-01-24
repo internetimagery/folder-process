@@ -1,7 +1,7 @@
 {
   "name": "folder-process",
   "productName": "FolderProcess",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Compress and rename files in a folder.",
   "license": "MIT",
   "repository": "internetimagery/folder-process",
@@ -12,8 +12,8 @@
   },
   "scripts": {
     "test": "xo",
-    "start": "electron src",
-    "build": "electron-packager . --out=dist --asar --overwrite --all"
+    "start": "electron .",
+    "build": "electron-packager . --out=dist -asar --overwrite"
   },
   "files": [
     "index.js",
