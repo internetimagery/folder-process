@@ -15,5 +15,5 @@ app.on "ready", ()->
 
   mainWindow.showUrl indexPath, ()->
     console.log "Window up and running!"
-    mainWindow.webContents.openDevTools()
+    # mainWindow.webContents.openDevTools()
     mainWindow.setResizable false
