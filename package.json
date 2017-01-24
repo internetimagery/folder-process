@@ -13,7 +13,7 @@
   "scripts": {
     "test": "xo",
     "start": "electron .",
-    "build": "electron-packager . --out=dist -asar --overwrite"
+    "build": "electron-packager . --out=dist --asar --overwrite"
   },
   "keywords": [
     "electron-app",
