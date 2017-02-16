@@ -6,11 +6,15 @@ app = express()
 
 PORT = 3000
 
-app.get "/", (req, res)->
+app.use express.static "public"
+
+app.get "/*", (req, res)->
   res.send "Hello World"
 
-# Start our webserver
-server = app.listen PORT
+# app.get "/*", (req, res)->
+#   res.send "stuff"
 
-# Open webbrowser
-opn "http://localhost:#{PORT}"
+# Start our webserver
+server = app.listen PORT, ->
+  # Open webbrowser
+  opn "http://localhost:#{PORT}"

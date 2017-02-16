@@ -7,9 +7,11 @@ body {
 	bottom: 0px;
 	/*width: 100%;
 	height: 100%;*/
-	background-image: url("img/folder-downloads.png"), url("img/sky_gradient.jpg");
+	background-color: black;
+	background-image: url("../img/hills.jpg");
 	background-position: center;
 	background-repeat: no-repeat;
+	background-size: cover;
 }
 
 body {

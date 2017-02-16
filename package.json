@@ -11,7 +11,7 @@
     "url": "internetimagery.com"
   },
   "scripts": {
-    "start": "node src/server.js"
+    "start": "gulp build && node src/server.js"
   },
   "keywords": [
     "photos",
@@ -28,5 +28,7 @@
     "opn": "^4.0.2",
     "progressbar.js": "^1.0.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "gulp-uglify": "^2.0.1"
+  }
 }
