@@ -19,17 +19,27 @@ body {
 	color: #111111;
 }
 
+i {
+	display: block;
+	width: 500px;
+	height: 500px;
+	font-size: 150px;
+	color: white;
+}
+
 /*800x600*/
 #drop {
 	position: absolute;
-	top: 50px;
-	left: 50px;
-	right: 50px;
-	bottom: 50px;
-	border-radius: 10px;
+	top: 3em;
+	left: 3em;
+	right: 3em;
+	bottom: 3em;
+	border-radius: 0.5em;
 	border: 1px dashed #FFFFFF;
 	background-repeat: no-repeat;
 	background-position: center;
+	text-align: center;
+	color: white;
 }
 
 .ready {
@@ -50,4 +60,20 @@ body {
 	position: absolute;
 	top: 0; left: 0; bottom: 0; right: 0;
 	width: 100px; height: 100px;
+}
+
+#icon-container {
+	display: inline-block;
+}
+
+#icon {
+	position: relative;
+	width: 100px;
+	height: 100px;
+	margin: -50px 0 0 -58px;
+	line-height: 100px;
+	top: 50%; left: 50%; bottom: 50%; right: 50%;
+	color: white;
+	font-size: 5em;
+	text-align: center;
 }
