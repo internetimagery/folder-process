@@ -30,7 +30,7 @@ match = (dir)->
             results.ok.push f
           else
             results.fail.push f
-    results
+      results
 
 # Rename files to match convention
 rename = (dir, files, index)->

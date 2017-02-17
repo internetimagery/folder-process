@@ -80,6 +80,7 @@ process = (paths)->
             dest = path.join originals, m.src
             fs.ensureLink src, dest
             .then ->
+              console.log "Backup: #{m.src}"
               progress_move current_progress += segment
               fin()
             .catch fin
@@ -89,6 +90,7 @@ process = (paths)->
             eachLimit move, 5, (m, fin)->
               src = path.join dir, m.src
               dest = path.join dir, m.dest
+              console.log "Compress: #{m.src}"
               compress src, dest
               .then ->
                 progress_move current_progress += segment
@@ -98,6 +100,7 @@ process = (paths)->
 
               # Remove the original files
               each move, (m, fin)->
+                console.log "Remove: #{m.src}"
                 fs.remove path.join dir, m.src
                 .then ->
                   progress_move current_progress += segment
