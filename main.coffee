@@ -2,10 +2,12 @@
 alertify = require 'alertify.js'
 ProgressBar = require "progressbar.js"
 Promise = require 'promise'
-fs = require './js/fs'
-dragDrop = require "./js/dragndrop"
-compress = require "./js/compress"
+fs = require './lib/fs'
+dragDrop = require "./lib/dragndrop"
+compress = require "./lib/compress"
+naming = require "./lib/naming"
 reduce = Promise.denodeify require "async/reduce"
+each = Promise.denodeify require "async/each"
 
 # Simple progress indicator
 progress_indicator = new ProgressBar.Circle "#progress",
@@ -30,27 +32,27 @@ process = (paths)->
     fs.stat p.path
     .then (stats)->
       ok.push p.path if stats.isDirectory()
-      done ok
+      done null, ok
     .catch done
   .then (dirs)->
     return alertify.alert "No folders given." if not dirs.length
+
     # Divide our progress up amongst the number of folders
     multiplier = 1.0 / dirs.length
 
     # Reset our progress indicator
     progress_indicator.set 0
+    current_progress = 0
+
+    # Lets run through the actual files!
+    each dirs, (dir, done)->
 
 
-#
-#       multiplier = 1.0 / e.dataTransfer.files.length
-#       progress_indicator.set 0
-#       current_progress = 0
-#
-#       for file in e.dataTransfer.files
-#         do (file)->
-#           fs.stat file.path, (err, stats)->
-#             if stats.isDirectory()
-#
+
+
+      done()
+
+
 #               # We are ok to go! Get files!
 #               compress.get_candidates file.path, (err, candidates)->
 #                 if not candidates.length
@@ -93,5 +95,6 @@ dragDrop "#drop"
     .catch (err)->
       elem.className = "ready"
       drop_enabled = true
+      console.log "Oh no!"
       console.error err
       alertify.error err.name
