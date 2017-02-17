@@ -9,6 +9,7 @@ compress = require "./lib/compress"
 naming = require "./lib/naming"
 reduce = Promise.denodeify require "async/reduce"
 each = Promise.denodeify require "async/each"
+eachLimit = Promise.denodeify require "async/eachLimit"
 
 # Simple progress indicator
 progress_indicator = new ProgressBar.Circle "#progress",
@@ -58,16 +59,51 @@ process = (paths)->
         # Validate our files!
         naming.match dir
         .then (result)->
+
+          # Get some new file names
           move = naming.rename result.dir, result.fail, result.index
 
           # If all files are named correctly, move on!
-          if not files.length
+          if not move.length
             progress_move current_progress += multiplier
             return done()
 
+          # Further divide our progress
+          segment =  3.0 / (multiplier / move.length)
 
-          console.log move
-          done()
+          # Make a new folder to put our originals
+          originals = path.join dir, "Originals Check before deleting #{Date.now()}"
+
+          # Back up our original files!
+          each move, (m, fin)->
+            src = path.join dir, m.src
+            dest = path.join originals, m.src
+            fs.ensureLink src, dest
+            .then ->
+              progress_move current_progress += segment
+              fin()
+            .catch fin
+          .then ->
+
+            # Compress our files!
+            eachLimit move, 5, (m, fin)->
+              src = path.join dir, m.src
+              dest = path.join dir, m.dest
+              compress src, dest
+              .then ->
+                progress_move current_progress += segment
+                fin()
+              .catch fin
+            .then ->
+
+              # Remove the original files
+              each move, (m, fin)->
+                fs.remove path.join dir, m.src
+                .then ->
+                  progress_move current_progress += segment
+                  fin()
+                .catch fin
+              .then done
       .catch done
 
 
@@ -109,11 +145,13 @@ dragDrop "#drop"
     .then ->
       elem.className = "ready"
       drop_enabled = true
+      progress_move 0
       console.log "Done! :)"
       alertify.success "Done! :)"
     .catch (err)->
       elem.className = "ready"
       drop_enabled = true
+      progress_move 0
       console.log "Oh no!"
       console.error err
       alertify.error err.name

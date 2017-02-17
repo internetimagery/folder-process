@@ -20,13 +20,16 @@ match = (dir)->
   fs.readdir dir
   .then (files)->
     return results if not files.length
-    for f in files
-      match = convention.exec f
-      if match
-        results.index = Math.max results.index, parseInt match[1]
-        results.ok.push f
-      else
-        results.fail.push f
+    Promise.all (fs.stat path.join dir, f for f in files)
+    .then (stats)->
+      for f, i in files
+        if stats[i].isFile()
+          match = convention.exec f
+          if match
+            results.index = Math.max results.index, parseInt match[1]
+            results.ok.push f
+          else
+            results.fail.push f
     results
 
 # Rename files to match convention
