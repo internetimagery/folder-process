@@ -13,10 +13,11 @@ NAMING = (dir)-> new RegExp escape_str(dir) + "_(\\d+)"
 # Collect files that match our naming and grab the largest index
 match = (dir)->
   results =
+    dir: path.basename dir
     ok: [] # Files that match our convention
     fail: [] # Files that failed to match the convention
     index: 0 # The highest index of our convention files
-  convention = NAMING path.basename dir
+  convention = NAMING results.dir
   fs.readdir dir
   .then (files)->
     return results if not files.length
@@ -29,14 +30,33 @@ match = (dir)->
         results.fail.push f
     results
 
-# # Check if file matches our naming convention
-# match = (dir, file)->
-#   convention = NAMING dir, file
-#   data = convention.exec name
-#   if data then data[1] else null
+# Rename files to match convention
+rename = (dir, files, index)->
+  result = []
+
+  # How much padding is needed?
+  pad = Math.min 3, (index + files.length).toString().length
+
+  for f in files
+    index += 1
+    index_str = index.toString()
+    index_str = "0".repeat(pad - index_str.length) + index_str
+
+    tags = TAGS.exec f
+    tags = if tags? then tags[0] else ""
+
+    ext = path.extname f
+          .toLowerCase()
+
+    result.push {
+      src: f
+      dest: "#{dir}_#{index}#{tags}#{ext}"
+    }
+  result
 
 module.exports = {
   match: match
+  rename: rename
 }
 
 

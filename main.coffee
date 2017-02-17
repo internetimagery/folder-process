@@ -58,7 +58,8 @@ process = (paths)->
         # Validate our files!
         naming.match dir
         .then (result)->
-          console.log result
+          move = naming.rename result.dir, result.fail, result.index
+          console.log move
           done()
       .catch done
 
