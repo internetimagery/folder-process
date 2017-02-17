@@ -1,41 +1,18 @@
 
+alertify = require 'alertify.js'
+ProgressBar = require "progressbar.js"
+Promise = require 'promise'
+fs = require './js/fs'
 dragDrop = require "./js/dragndrop"
+compress = require "./js/compress"
+reduce = Promise.denodeify require "async/reduce"
 
+# Simple progress indicator
+progress_indicator = new ProgressBar.Circle "#progress",
+  color: "#FFFFFF"
+  strokeWidth: 2.1
 
-# Set up dragging and dropping functionality
-drop_enabled = true
-dragDrop "#drop"
-.on "over", (elem)->
-  elem.className = "drag" if drop_enabled
-.on "out", (elem)->
-  elem.className = "ready"
-.on "drop", (elem, files)->
-  if drop_enabled
-    drop_enabled = false
-    elem.className = "disabled"
-    console.log "DROP"
-    # do stuff
-    drop_enabled = true
-
-# # Run the webpage!
-# console.log "Running Main.js"
-#
-# # Alert us when things happen!
-# alertify = require "alertifyjs"
-# compress = require "./js/compress.js"
-# fs = require 'fs'
-# ProgressBar = require "progressbar.js"
-#
-#
-#
-# # Display progress on progress bar
-# progress_indicator = new ProgressBar.Circle "#progress",
-#   color: "#FFFFFF"
-#   strokeWidth: 2.1
-#
-# # Disable dropping while working
-# @drop_enabled = true
-#
+# Report progress
 # progress_move = (prog)=>
 #   if prog < 1
 #     progress_indicator.animate prog
@@ -44,26 +21,26 @@ dragDrop "#drop"
 #     drag_drop.className = "ready"
 #     @drop_enabled = true
 #     alertify.confirm "Compressing and Renaming complete! :)\nBe sure to compare the files with the originals."
-#
-# # Allow drag and drop of folders to process
-# drag_drop = document.getElementById "drop"
-# drag_drop.ondragover = ()=>
-#   if @drop_enabled
-#     drag_drop.className = "drag"
-#   return false
-# drag_drop.ondragleave = ()->
-#   drag_drop.className = "ready"
-#   return false
-# drag_drop.ondragend = ()->
-#   drag_drop.className = "ready"
-#   return false
-# drag_drop.ondrop = (e)=>
-#   e.preventDefault()
-#   if @drop_enabled
-#
-#     if e.dataTransfer.files.length
-#       drag_drop.className = "disabled"
-#       @drop_enabled = false
+
+# Process our files!
+process = (paths)->
+
+  # Reduce any requested paths to just directories.
+  reduce paths, [], (ok, p, done)->
+    fs.stat p.path
+    .then (stats)->
+      ok.push p.path if stats.isDirectory()
+      done ok
+    .catch done
+  .then (dirs)->
+    return alertify.alert "No folders given." if not dirs.length
+    # Divide our progress up amongst the number of folders
+    multiplier = 1.0 / dirs.length
+
+    # Reset our progress indicator
+    progress_indicator.set 0
+
+
 #
 #       multiplier = 1.0 / e.dataTransfer.files.length
 #       progress_indicator.set 0
@@ -95,3 +72,26 @@ dragDrop "#drop"
 #               alertify.warning "#{file.name} is not a folder.", ()->
 #
 #   return false
+
+# Set up dragging and dropping functionality
+drop_enabled = true
+dragDrop "#drop"
+.on "over", (elem)->
+  elem.className = "drag" if drop_enabled
+.on "out", (elem)->
+  elem.className = "ready"
+.on "drop", (elem, files)->
+  if drop_enabled
+    drop_enabled = false
+    elem.className = "disabled"
+    process files
+    .then ->
+      elem.className = "ready"
+      drop_enabled = true
+      console.log "Done! :)"
+      alertify.success "Done! :)"
+    .catch (err)->
+      elem.className = "ready"
+      drop_enabled = true
+      console.error err
+      alertify.error err.name
