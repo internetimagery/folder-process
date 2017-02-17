@@ -13,8 +13,8 @@
   "main": "index.js",
   "scripts": {
     "test": "xo",
-    "start": "electron .",
-    "build": "electron-packager . --out=dist --asar --overwrite"
+    "start": "gulp coffee && electron .",
+    "build": "gulp coffee && electron-packager . --out=dist --asar --overwrite"
   },
   "keywords": [
     "electron-app",
