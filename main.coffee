@@ -2,6 +2,7 @@
 alertify = require 'alertify.js'
 ProgressBar = require "progressbar.js"
 Promise = require 'promise'
+path = require 'path'
 fs = require './lib/fs'
 dragDrop = require "./lib/dragndrop"
 compress = require "./lib/compress"
@@ -15,7 +16,8 @@ progress_indicator = new ProgressBar.Circle "#progress",
   strokeWidth: 2.1
 
 # Report progress
-# progress_move = (prog)=>
+progress_move = (prog)->
+  console.log prog
 #   if prog < 1
 #     progress_indicator.animate prog
 #   else
@@ -41,16 +43,25 @@ process = (paths)->
     multiplier = 1.0 / dirs.length
 
     # Reset our progress indicator
-    progress_indicator.set 0
-    current_progress = 0
+    progress_move current_progress = 0
 
     # Lets run through the actual files!
     each dirs, (dir, done)->
+      fs.readdir dir
+      .then (files)->
 
+        # Empty directory? Move on!
+        if not files.length
+          progress_move current_progress += multiplier
+          return done()
 
+        # Validate our files!
+        naming.match dir
+        .then (result)->
+          console.log result
+          done()
+      .catch done
 
-
-      done()
 
 
 #               # We are ok to go! Get files!

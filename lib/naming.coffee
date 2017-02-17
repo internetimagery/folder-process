@@ -1,7 +1,52 @@
 # Manage our naming convention!
 
-fs = require './fs'
 
+fs = require './fs'
+path = require 'path'
+escape_str = require "escape-string-regexp"
+
+
+# Some conventions
+TAGS = /\[.+?\]/
+NAMING = (dir)-> new RegExp escape_str(dir) + "_(\\d+)"
+
+# Collect files that match our naming and grab the largest index
+match = (dir)->
+  results =
+    ok: [] # Files that match our convention
+    fail: [] # Files that failed to match the convention
+    index: 0 # The highest index of our convention files
+  convention = NAMING path.basename dir
+  fs.readdir dir
+  .then (files)->
+    return results if not files.length
+    for f in files
+      match = convention.exec f
+      if match
+        results.index = Math.max results.index, parseInt match[1]
+        results.ok.push f
+      else
+        results.fail.push f
+    results
+
+# # Check if file matches our naming convention
+# match = (dir, file)->
+#   convention = NAMING dir, file
+#   data = convention.exec name
+#   if data then data[1] else null
+
+module.exports = {
+  match: match
+}
+
+
+
+
+# fs = require 'fs'
+# path = require 'path'
+# mozjpeg = require 'mozjpeg'
+# ffmpeg = require 'ffmpeg-static'
+# child_process = require 'child_process'
 #
 # # Grab possible files we can use from the root directory
 # @get_candidates = (root, callback)->
