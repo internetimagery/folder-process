@@ -1,18 +1,23 @@
 
 ffmpeg = require '@ffmpeg-installer/ffmpeg'
+mozjpeg = require 'mozjpeg'
+Promise = require 'promise'
 path = require 'path'
 fs = require './fs'
+execFile = Promise.denodeify require("child_process").execFile
 
 IMAGE = [".jpg", ".jpeg", ".png"]
 VIDEO = [".mp4", ".mov", ".avi", ".wmv", ".rm", ".3gp", ".mkv", ".scm", ".vid", ".mpeg", ".avchd", ".m2ts"]
 
 # Compress an image
 cmp_image = (src, dest)->
-  fs.ensureLink src, dest
+  command = ["-i", src, "-crf", 18, "-c:v", "libx264", dest]
+  execFile ffmpeg.path, command
 
 # Compress a video
 cmp_video = (src, dest)->
-  fs.ensureLink src, dest
+  command = ["-quality", 90, "-outfile", dest, src]
+  execFile mozjpeg, command
 
 # Compress a file!
 compress = (src, dest)->
@@ -25,7 +30,7 @@ compress = (src, dest)->
     func = cmp_image
   else if ext in VIDEO
     func = cmp_video
-    dest = dest.replace /\.\w+$/, ".mp4" # making file mp4
+    dest = dest.replace /\.\w+$/, ".mp4" # forcing file mp4
 
   func src, dest
   .then ->
