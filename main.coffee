@@ -69,69 +69,28 @@ process = (paths)->
             return done()
 
           # Further divide our progress
-          segment =  3.0 / (multiplier / move.length)
+          segment = multiplier / move.length
 
           # Make a new folder to put our originals
           originals = path.join dir, "Originals Check before deleting #{Date.now()}"
 
           # Back up our original files!
-          each move, (m, fin)->
-            src = path.join dir, m.src
-            dest = path.join originals, m.src
-            fs.ensureLink src, dest
+          eachLimit move, 5, (m, fin)->
+            origin = path.join dir, m.src
+            backup = path.join originals, m.src
+            compressed = path.join dir, m.dest
+            console.log "Backup: #{m.src}"
+            fs.ensureLink origin, backup
             .then ->
-              console.log "Backup: #{m.src}"
-              progress_move current_progress += segment
-              fin()
-            .catch fin
-          .then ->
-
-            # Compress our files!
-            eachLimit move, 5, (m, fin)->
-              src = path.join dir, m.src
-              dest = path.join dir, m.dest
               console.log "Compress: #{m.src}"
-              compress src, dest
-              .then ->
-                progress_move current_progress += segment
-                fin()
-              .catch fin
+              compress origin, compressed
             .then ->
-
-              # Remove the original files
-              each move, (m, fin)->
-                console.log "Remove: #{m.src}"
-                fs.remove path.join dir, m.src
-                .then ->
-                  progress_move current_progress += segment
-                  fin()
-                .catch fin
-              .then done
+              progress_move current_progress += segment
+              fs.remove origin
+            .then fin
+            .catch fin
+          .then done
       .catch done
-
-
-
-#               # We are ok to go! Get files!
-#               compress.get_candidates file.path, (err, candidates)->
-#                 if not candidates.length
-#                   current_progress += multiplier
-#                   progress_move current_progress
-#                   alertify.notify "Nothing to compress! :)"
-#                 else
-#                   step = 1 / candidates.length
-#                   compress.main file.path, candidates, (err, message)->
-#                     current_progress += step
-#                     progress_move current_progress
-#                     if err
-#                       console.error err
-#                       alertify.error err.message
-#                     else
-#                       console.log message
-#                       alertify.notify message
-#             else
-#               alertify.warning "#{file.name} is not a folder.", ()->
-#
-#   return false
 
 # Set up dragging and dropping functionality
 drop_enabled = true
