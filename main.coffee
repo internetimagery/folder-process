@@ -59,6 +59,13 @@ process = (paths)->
         naming.match dir
         .then (result)->
           move = naming.rename result.dir, result.fail, result.index
+
+          # If all files are named correctly, move on!
+          if not files.length
+            progress_move current_progress += multiplier
+            return done()
+
+
           console.log move
           done()
       .catch done
