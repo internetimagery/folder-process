@@ -4,7 +4,8 @@ Promise = require 'promise'
 
 module.exports = {}
 for k, v of fs
-  if typeof v == "function" and not k.endsWith "Sync"
-    module.exports[k] = Promise.denodeify v
-  else
-    module.exports[k] = v
+  module.exports[k] = v
+  if typeof v == "function"
+    if not k.endsWith "Sync"
+      if not k.endsWith "Stream"
+        module.exports[k] = Promise.denodeify v
