@@ -6,7 +6,7 @@ path = require 'path'
 fs = require './fs'
 execFile = Promise.denodeify require("child_process").execFile
 
-IMAGE = [".jpg", ".jpeg", ".png"]
+IMAGE = [".jpg", ".jpeg"] #, ".png"]
 VIDEO = [".mp4", ".mov", ".avi", ".wmv", ".rm", ".3gp", ".mkv", ".scm", ".vid", ".mpeg", ".avchd", ".m2ts"]
 
 # Compress an image

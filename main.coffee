@@ -8,8 +8,10 @@ dragDrop = require "./lib/dragndrop"
 compress = require "./lib/compress"
 naming = require "./lib/naming"
 reduce = Promise.denodeify require "async/reduce"
-each = Promise.denodeify require "async/each"
 eachLimit = Promise.denodeify require "async/eachLimit"
+
+# How many tasks to run at once.
+PROCESSES = 3
 
 # Simple progress indicator
 progress_indicator = new ProgressBar.Circle "#progress",
@@ -18,7 +20,7 @@ progress_indicator = new ProgressBar.Circle "#progress",
 
 # Report progress
 progress_move = (prog)->
-  console.log prog
+  console.log "Progress!", "#{prog * 100}%"
 #   if prog < 1
 #     progress_indicator.animate prog
 #   else
@@ -47,7 +49,7 @@ process = (paths)->
     progress_move current_progress = 0
 
     # Lets run through the actual files!
-    each dirs, (dir, done)->
+    eachLimit dirs, 1, (dir, done)->
       fs.readdir dir
       .then (files)->
 
@@ -75,17 +77,17 @@ process = (paths)->
           originals = path.join dir, "Originals Check before deleting #{Date.now()}"
 
           # Back up our original files!
-          eachLimit move, 5, (m, fin)->
+          eachLimit move, PROCESSES, (m, fin)->
             origin = path.join dir, m.src
             backup = path.join originals, m.src
             compressed = path.join dir, m.dest
-            console.log "Backup: #{m.src}"
+            start = Date.now()
             fs.ensureLink origin, backup
             .then ->
-              console.log "Compress: #{m.src}"
               compress origin, compressed
             .then ->
               progress_move current_progress += segment
+              console.log "#{Date.now() - start} : #{m.src}"
               fs.remove origin
             .then fin
             .catch fin
