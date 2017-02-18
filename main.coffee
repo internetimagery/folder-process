@@ -1,12 +1,12 @@
 
 alertify = require 'alertify.js'
-ProgressBar = require "progressbar.js"
 Promise = require 'promise'
 path = require 'path'
 fs = require './lib/fs'
 dragDrop = require "./lib/dragndrop"
 compress = require "./lib/compress"
 naming = require "./lib/naming"
+progress = require './lib/progress'
 reduce = Promise.denodeify require "async/reduce"
 eachLimit = Promise.denodeify require "async/eachLimit"
 
@@ -14,20 +14,7 @@ eachLimit = Promise.denodeify require "async/eachLimit"
 PROCESSES = 3
 
 # Simple progress indicator
-progress_indicator = new ProgressBar.Circle "#progress",
-  color: "#FFFFFF"
-  strokeWidth: 2.1
-
-# Report progress
-progress_move = (prog)->
-  console.log "Progress!", "#{prog * 100}%"
-#   if prog < 1
-#     progress_indicator.animate prog
-#   else
-#     progress_indicator.set 0
-#     drag_drop.className = "ready"
-#     @drop_enabled = true
-#     alertify.confirm "Compressing and Renaming complete! :)\nBe sure to compare the files with the originals."
+update_progress = progress "#progress"
 
 # Process our files!
 process = (paths)->
@@ -46,7 +33,7 @@ process = (paths)->
     multiplier = 1.0 / dirs.length
 
     # Reset our progress indicator
-    progress_move current_progress = 0
+    update_progress current_progress = 0
 
     # Lets run through the actual files!
     eachLimit dirs, 1, (dir, done)->
@@ -55,7 +42,7 @@ process = (paths)->
 
         # Empty directory? Move on!
         if not files.length
-          progress_move current_progress += multiplier
+          update_progress current_progress += multiplier
           return done()
 
         # Validate our files!
@@ -67,7 +54,7 @@ process = (paths)->
 
           # If all files are named correctly, move on!
           if not move.length
-            progress_move current_progress += multiplier
+            update_progress current_progress += multiplier
             return done()
 
           # Further divide our progress
@@ -86,7 +73,7 @@ process = (paths)->
             .then ->
               compress origin, compressed
             .then ->
-              progress_move current_progress += segment
+              update_progress current_progress += segment
               console.log "#{Date.now() - start} : #{m.src}"
               fs.remove origin
             .then fin
@@ -109,13 +96,13 @@ dragDrop "#drop"
     .then ->
       elem.className = "ready"
       drop_enabled = true
-      progress_move 0
+      update_progress 0
       console.log "Done! :)"
       alertify.success "Done! :)"
     .catch (err)->
       elem.className = "ready"
       drop_enabled = true
-      progress_move 0
+      update_progress 0
       console.log "Oh no!"
       console.error err
       alertify.error err.name
