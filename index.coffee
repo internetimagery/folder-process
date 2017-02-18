@@ -1,11 +1,11 @@
 # Run the app!
-{app} = require "electron"
+electron = require "electron"
 path = require "path"
 window = require "electron-window"
 
-app.on "ready", ()->
+electron.app.on "ready", ()->
   # Turn off the default menu
-  app.on "browser-window-created", (err, win)->
+  electron.app.on "browser-window-created", (err, win)->
       win.setMenu null
   mainWindow = window.createWindow
     width: 800
