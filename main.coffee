@@ -14,7 +14,37 @@ eachLimit = Promise.denodeify require "async/eachLimit"
 PROCESSES = 3
 
 # Simple progress indicator
+prog_elem = document.getElementById "progress"
 update_progress = progress "#progress"
+
+# Set up dragging and dropping functionality
+drop_enabled = true
+dragDrop "#drop"
+.on "over", (elem)->
+  elem.className = "drag" if drop_enabled
+.on "out", (elem)->
+  elem.className = "ready"
+.on "drop", (elem, files)->
+  if drop_enabled
+    drop_enabled = false
+    elem.className = "disabled"
+    prog_elem.className = ""
+    process files
+    .then ->
+      elem.className = "ready"
+      prog_elem.className = "hidden"
+      drop_enabled = true
+      update_progress 0
+      console.log "Done! :)"
+      alertify.success "Done! :)"
+    .catch (err)->
+      elem.className = "ready"
+      prog_elem.className = "hidden"
+      drop_enabled = true
+      update_progress 0
+      console.log "Oh no!"
+      console.error err
+      alertify.error err.name
 
 # Process our files!
 process = (paths)->
@@ -80,29 +110,3 @@ process = (paths)->
             .catch fin
           .then done
       .catch done
-
-# Set up dragging and dropping functionality
-drop_enabled = true
-dragDrop "#drop"
-.on "over", (elem)->
-  elem.className = "drag" if drop_enabled
-.on "out", (elem)->
-  elem.className = "ready"
-.on "drop", (elem, files)->
-  if drop_enabled
-    drop_enabled = false
-    elem.className = "disabled"
-    process files
-    .then ->
-      elem.className = "ready"
-      drop_enabled = true
-      update_progress 0
-      console.log "Done! :)"
-      alertify.success "Done! :)"
-    .catch (err)->
-      elem.className = "ready"
-      drop_enabled = true
-      update_progress 0
-      console.log "Oh no!"
-      console.error err
-      alertify.error err.name
