@@ -1,4 +1,4 @@
-
+electron = require 'electron'
 alertify = require 'alertify.js'
 Promise = require 'promise'
 path = require 'path'
@@ -12,6 +12,11 @@ eachLimit = Promise.denodeify require "async/eachLimit"
 
 # How many tasks to run at once.
 PROCESSES = 3
+
+# Make close button work
+document.getElementById "close"
+.addEventListener "click", ->
+  electron.remote.getCurrentWindow().close()
 
 # Simple progress indicator
 prog_elem = document.getElementById "progress"
