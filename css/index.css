@@ -11,8 +11,31 @@ body {
 body {
 	font-family: -apple-system, 'Helvetica Neue', Helvetica, sans-serif;
 	color: #111111;
+}
+
+#title-bar{
+	height: 50px;
 	-webkit-app-region: drag;
 }
+
+#close {
+	background-color: white;
+	border-radius: 30px;
+	text-align: center;
+	height: 30px;
+	line-height: 30px;
+	width: 30px;
+	position: absolute;
+	right: 10px;
+	top: 10px;
+	color: white;
+	cursor: pointer;
+	-webkit-app-region: no-drag;
+}
+#close:hover {
+	color: black;
+}
+
 
 /*800x600*/
 #drop {
@@ -29,6 +52,8 @@ body {
 
 .ready {
 	background-color: rgba(255, 255, 255, 0.0);
+	background-image: url("../img/upload.png");
+	background-size: 200px 200px;
 }
 
 .disabled {
@@ -51,21 +76,4 @@ body {
 	position: absolute;
 	top: 0; left: 0; bottom: 0; right: 0;
 	width: 150px; height: 150px;
-}
-
-#close {
-	background-color: white;
-	border-radius: 30px;
-	text-align: center;
-	height: 30px;
-	line-height: 30px;
-	width: 30px;
-	position: absolute;
-	right: 10px;
-	top: 10px;
-	color: white;
-	cursor: pointer;
-}
-#close:hover {
-	color: black;
 }

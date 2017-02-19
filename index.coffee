@@ -10,6 +10,7 @@ electron.app.on "ready", ()->
   mainWindow = window.createWindow
     width: 800
     height: 600
+    frame: false
   indexPath = path.resolve __dirname, "index.html"
 
 
