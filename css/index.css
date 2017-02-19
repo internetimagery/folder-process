@@ -11,6 +11,7 @@ body {
 body {
 	font-family: -apple-system, 'Helvetica Neue', Helvetica, sans-serif;
 	color: #111111;
+	-webkit-app-region: drag;
 }
 
 /*800x600*/
