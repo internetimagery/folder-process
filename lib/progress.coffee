@@ -4,7 +4,7 @@ ProgressBar = require 'progressbar.js'
 module.exports = (element)->
   indicator = new ProgressBar.Circle element,
     color: "#FFFFFF"
-    strokeWidth: 2.1
+    strokeWidth: 1.5
 
   # Function to set progress
   (prog)->

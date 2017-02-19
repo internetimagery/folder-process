@@ -8,7 +8,7 @@ electron.app.on "ready", ()->
   electron.app.on "browser-window-created", (err, win)->
       win.setMenu null
   mainWindow = window.createWindow
-    width: 800
+    width: 600
     height: 600
     frame: false
   indexPath = path.resolve __dirname, "index.html"
@@ -16,5 +16,5 @@ electron.app.on "ready", ()->
 
   mainWindow.showUrl indexPath, ()->
     console.log "Window up and running!"
-    mainWindow.webContents.openDevTools()
-    # mainWindow.setResizable false
+    # mainWindow.webContents.openDevTools()
+    mainWindow.setResizable false

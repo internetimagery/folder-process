@@ -13,7 +13,7 @@ body {
 	color: #111111;
 }
 
-#title-bar{
+#title-bar {
 	height: 50px;
 	-webkit-app-region: drag;
 }
@@ -48,12 +48,13 @@ body {
 	border: 1px dashed #FFFFFF;
 	background-repeat: no-repeat;
 	background-position: center;
+	cursor: copy;
 }
 
 .ready {
 	background-color: rgba(255, 255, 255, 0.0);
 	background-image: url("../img/upload.png");
-	background-size: 200px 200px;
+	background-size: 150px 150px;
 }
 
 .disabled {
@@ -65,6 +66,8 @@ body {
 
 .drag {
 	background-color: rgba(255, 255, 255, 0.5);
+	background-image: url("../img/upload.png");
+	background-size: 200px 200px;
 }
 
 .hidden {
@@ -75,5 +78,5 @@ body {
 	margin: auto;
 	position: absolute;
 	top: 0; left: 0; bottom: 0; right: 0;
-	width: 150px; height: 150px;
+	width: 125px; height: 125px;
 }
