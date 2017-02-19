@@ -1,11 +1,11 @@
 # Simple progress bar!
-Progressbar = require 'progressbar.js'
+ProgressBar = require 'progressbar.js'
 
 module.exports = (element)->
   indicator = new ProgressBar.Circle element,
     color: "#FFFFFF"
     strokeWidth: 2.1
-  
+
   # Function to set progress
   (prog)->
     prog = 1 if prog > 0.998
