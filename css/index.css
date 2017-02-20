@@ -1,0 +1,77 @@
+html,
+body {
+	position: absolute;
+	left: 0px; top: 0px; right: 0px; bottom: 0px;
+	background-image: url("../img/tweed/tweed.png");
+}
+
+body {
+	font-family: -apple-system, 'Helvetica Neue', Helvetica, sans-serif;
+	color: #111111;
+}
+
+#title-bar {
+	height: 50px;
+	cursor: grab;
+	-webkit-app-region: drag;
+}
+
+#close {
+	background-color: white;
+	border-radius: 30px;
+	text-align: center;
+	height: 30px;
+	line-height: 30px;
+	width: 30px;
+	position: absolute;
+	right: 10px;
+	top: 10px;
+	color: white;
+	cursor: pointer;
+	-webkit-app-region: no-drag;
+}
+
+#close:hover {
+	color: black;
+}
+
+/*800x600*/
+#drop {
+	position: absolute;
+	top: 50px; left: 50px; right: 50px; bottom: 50px;
+	border-radius: 10px;
+	border: 1px dashed #FFFFFF;
+	background-repeat: no-repeat;
+	background-position: center;
+	cursor: copy;
+}
+
+.ready {
+	background-color: rgba(255, 255, 255, 0.0);
+	background-image: url("../img/upload.png");
+	background-size: 150px 150px;
+}
+
+.disabled {
+	background-color: rgba(100, 100, 100, 0.2);
+	background-image: url("../img/loading.gif");
+	background-size: 300px 300px;
+	cursor: wait;
+}
+
+.drag {
+	background-color: rgba(255, 255, 255, 0.5);
+	background-image: url("../img/upload.png");
+	background-size: 200px 200px;
+}
+
+.hidden {
+	display: none;
+}
+
+#progress {
+	margin: auto;
+	position: absolute;
+	top: 0; left: 0; bottom: 0; right: 0;
+	width: 125px; height: 125px;
+}

@@ -1,0 +1,54 @@
+{
+  "name": "folder-process",
+  "productName": "FolderProcess",
+  "version": "1.0.0",
+  "description": "Compress and rename files in a folder.",
+  "license": "MIT",
+  "repository": "internetimagery/folder-process",
+  "author": {
+    "name": "Jason Dixon",
+    "email": "jason.dixon.email@gmail.com",
+    "url": "internetimagery.com"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "xo",
+    "start": "gulp coffee && electron .",
+    "build": "gulp coffee && electron-packager . --out=dist --asar --overwrite"
+  },
+  "keywords": [
+    "electron-app",
+    "electron",
+    "photos",
+    "videos",
+    "compress"
+  ],
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.0.9",
+    "alertify.js": "^1.0.12",
+    "async": "^2.1.4",
+    "bootstrap": "^3.3.7",
+    "electron-debug": "^1.0.0",
+    "electron-window": "^0.8.1",
+    "escape-string-regexp": "^1.0.5",
+    "fs-extra": "^2.0.0",
+    "mozjpeg": "^4.1.1",
+    "progressbar.js": "^1.0.1",
+    "promise": "^7.1.1"
+  },
+  "devDependencies": {
+    "devtron": "^1.1.0",
+    "electron": "^1.3.3",
+    "electron-packager": "^8.0.0",
+    "gulp": "^3.9.1",
+    "gulp-coffee": "^2.3.3",
+    "xo": "^0.16.0"
+  },
+  "xo": {
+    "esnext": true,
+    "envs": [
+      "node",
+      "browser"
+    ]
+  }
+}
