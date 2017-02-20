@@ -24,4 +24,10 @@
     });
   });
 
+  process.on("exit", function() {
+    process.stdout.write("Process Closed");
+    this.proc.disconnect();
+    return this.proc.kill();
+  });
+
 }).call(this);

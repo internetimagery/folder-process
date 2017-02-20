@@ -18,3 +18,9 @@ electron.app.on "ready", ()->
     console.log "Window up and running!"
     mainWindow.webContents.openDevTools()
     # mainWindow.setResizable false
+
+# Ensure process ends when closed
+process.on "exit", ->
+  process.stdout.write "Process Closed"
+  @.proc.disconnect()
+  @.proc.kill()

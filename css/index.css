@@ -12,7 +12,7 @@ body {
 
 #title-bar {
 	height: 50px;
-	cursor: grab;
+	cursor: move;
 	-webkit-app-region: drag;
 }
 
@@ -43,7 +43,6 @@ body {
 	border: 1px dashed #FFFFFF;
 	background-repeat: no-repeat;
 	background-position: center;
-	cursor: copy;
 }
 
 .ready {
@@ -56,7 +55,7 @@ body {
 	background-color: rgba(100, 100, 100, 0.2);
 	background-image: url("../img/loading.gif");
 	background-size: 300px 300px;
-	cursor: wait;
+	cursor: progress;
 }
 
 .drag {
