@@ -29,7 +29,7 @@ dragDrop "#drop"
 .on "over", (elem)->
   elem.className = "drag" if drop_enabled
 .on "out", (elem)->
-  elem.className = "ready"
+  elem.className = "ready" if drop_enabled
 .on "drop", (elem, files)->
   if drop_enabled
     drop_enabled = false
