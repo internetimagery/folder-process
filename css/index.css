@@ -18,15 +18,15 @@ body {
 
 #close {
 	background-color: white;
-	border-radius: 30px;
+	border-radius: 25px;
 	text-align: center;
-	height: 30px;
-	line-height: 30px;
-	width: 30px;
+	height: 25px;
+	line-height: 25px;
+	width: 25px;
 	position: absolute;
 	right: 10px;
 	top: 10px;
-	color: white;
+	color: lightgrey;
 	cursor: pointer;
 	-webkit-app-region: no-drag;
 }
@@ -34,6 +34,7 @@ body {
 #close:hover {
 	color: black;
 }
+
 
 /*800x600*/
 #drop {
