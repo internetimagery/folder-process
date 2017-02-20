@@ -19,6 +19,7 @@ cmp_video = (src, dest)->
   command = ["-i", src, "-crf", 18, "-c:v", "libx264", dest]
   execFile ffmpeg.path, command
 
+
 # Compress a file!
 compress = (src, dest)->
   # Determine file type

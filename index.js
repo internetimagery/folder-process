@@ -20,7 +20,7 @@
     indexPath = path.resolve(__dirname, "index.html");
     return mainWindow.showUrl(indexPath, function() {
       console.log("Window up and running!");
-      return mainWindow.webContents.openDevTools();
+      return mainWindow.setResizable(false);
     });
   });
 

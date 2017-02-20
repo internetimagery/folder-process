@@ -13,11 +13,10 @@ electron.app.on "ready", ()->
     frame: false
   indexPath = path.resolve __dirname, "index.html"
 
-
   mainWindow.showUrl indexPath, ()->
     console.log "Window up and running!"
-    mainWindow.webContents.openDevTools()
-    # mainWindow.setResizable false
+    # mainWindow.webContents.openDevTools()
+    mainWindow.setResizable false
 
 # Ensure process ends when closed
 process.on "exit", ->

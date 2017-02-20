@@ -7,6 +7,7 @@ dragDrop = require "./lib/dragndrop"
 compress = require "./lib/compress"
 naming = require "./lib/naming"
 progress = require './lib/progress'
+FakeProgress = require "./lib/fakeprogress"
 reduce = Promise.denodeify require "async/reduce"
 eachLimit = Promise.denodeify require "async/eachLimit"
 
@@ -98,20 +99,39 @@ process = (paths)->
           # Make a new folder to put our originals
           originals = path.join dir, "Originals Check before deleting #{Date.now()}"
 
+          # Split into paths (lots of wasted processing, yeah yeah!) :P
+          output = ({
+            size: fs.statSync(path.join dir, m.src).size
+            origin: path.join dir, m.src
+            backup: path.join originals, m.src
+            compressed: path.join dir, m.dest
+            } for m in move)
+
+          # Total size of all files.
+          total_size = (o.size for o in output).reduce (a,b)-> a + b
+
+          # Track our average progress
+          fp = new FakeProgress total_size, (prog)->
+            update_progress prog * multiplier
+
           # Back up our original files!
-          eachLimit move, PROCESSES, (m, fin)->
-            origin = path.join dir, m.src
-            backup = path.join originals, m.src
-            compressed = path.join dir, m.dest
-            start = Date.now()
-            fs.ensureLink origin, backup
+          # Compress the files.
+          # Remove the original file.
+          eachLimit output, PROCESSES, (out, fin)->
+            # start = Date.now()
+            # console.log "Expected: #{(out.size * rate) + start}"
+            fs.ensureLink out.origin, out.backup
             .then ->
-              compress origin, compressed
+              compress out.origin, out.compressed
             .then ->
-              update_progress current_progress += segment
-              console.log "#{Date.now() - start} : #{m.src}"
-              fs.remove origin
-            .then fin
+              fs.remove out.origin
+            .then ->
+              fp.update out.size
+              # update_progress current_progress += segment
+              # elapsed = Date.now() - start
+              # rate = elapsed / out.size
+              # console.log "Actual: #{Date.now()}"
+              fin()
             .catch fin
           .then done
       .catch done
